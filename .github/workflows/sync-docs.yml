@@ -149,19 +149,17 @@ jobs:
 
           git push -u origin "$branch_name"
 
-          # Build PR body with variable expansion (unquoted heredoc delimiter)
+          # Build PR body into a variable to avoid heredoc indentation issues in YAML
           sources_list=$(jq -r '.sources[] | "- **\(.name)** (\(.type)): \(.description)"' sync-manifest.json)
+          pr_body="## Summary
+          Automated daily sync of documentation from source repositories.
+
+          Sources synced (defined in \`sync-manifest.json\`):
+          ${sources_list}
+
+          ---
+          Generated automatically by the sync-docs workflow."
 
           gh pr create \
             --title "chore(documentation): sync docs from source repos" \
-            --body "$(cat <<EOF
-## Summary
-Automated daily sync of documentation from source repositories.
-
-Sources synced (defined in \`sync-manifest.json\`):
-${sources_list}
-
----
-Generated automatically by the sync-docs workflow.
-EOF
-          )"
+            --body "$pr_body"
