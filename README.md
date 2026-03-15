@@ -19,21 +19,19 @@ docs/
 │       ├── evaluating-skills.md           # Evaluating skill output quality
 │       ├── optimizing-descriptions.md     # Optimizing skill descriptions
 │       └── using-scripts.md              # Using scripts in skills
-└── anthropic/                             # Anthropic's official documentation
-    ├── agents/
-    │   └── sub-agents.md
-    ├── hooks/
-    │   ├── hooks-guide.md
-    │   └── hooks-reference.md
-    ├── plugins/
-    │   ├── create-plugins.md
-    │   └── plugins-reference.md
-    └── skills/
-        ├── agent-skills-best-practices.md
-        ├── agent-skills-overview.md
-        ├── agent-skills-quickstart.md
-        ├── extend-claude-with-skills.md
-        └── using-agent-skills-with-the-api.md
+└── anthropic/                             # Claude Code docs from code.claude.com
+    ├── skills.md                          # Extend Claude with skills
+    ├── hooks.md                           # Hooks reference
+    ├── hooks-guide.md                     # Hooks guide
+    ├── sub-agents.md                      # Custom subagents
+    ├── plugins.md                         # Create plugins
+    ├── plugins-reference.md               # Plugins reference
+    ├── best-practices.md                  # Best practices
+    ├── overview.md                        # Claude Code overview
+    ├── mcp.md                             # MCP integration
+    ├── memory.md                          # Memory/CLAUDE.md
+    ├── ...                                # All other code.claude.com docs
+    └── The-Complete-Guide-to-Building-Skill-for-Claude.pdf
 ```
 
 ## Automated sync

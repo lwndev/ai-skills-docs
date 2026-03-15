@@ -18,7 +18,6 @@ jobs:
 
       - name: Sync from llms-txt sources
         run: |
-          # Read manifest and process llms-txt sources
           for source in $(jq -c '.sources[] | select(.type == "llms-txt")' sync-manifest.json); do
             name=$(echo "$source" | jq -r '.name')
             llms_txt_url=$(echo "$source" | jq -r '.llms_txt_url')
@@ -29,8 +28,8 @@ jobs:
             # Fetch llms.txt index
             llms_txt=$(curl -fsSL "$llms_txt_url")
 
-            # Parse doc URLs from llms.txt (lines matching markdown link format)
-            echo "$llms_txt" | grep -oP '\(https://[^)]+\.md\)' | tr -d '()' | while read -r url; do
+            # Parse doc URLs from llms.txt (markdown link format)
+            echo "$llms_txt" | grep -oE 'https://[^)]+\.md' | while read -r url; do
               # Extract the path portion after the domain
               path=$(echo "$url" | sed -E 's|https://[^/]+/||')
 
@@ -44,7 +43,7 @@ jobs:
               curl -fsSL "$url" -o "$dest_file" || echo "  Warning: Failed to download $url"
             done
 
-            # Remove local files that no longer exist in the source index
+            # Remove stale .md files that no longer exist in the source index
             if [ -d "$destination" ]; then
               find "$destination" -name '*.md' -not -name 'README.md' | while read -r local_file; do
                 rel_path="${local_file#$destination/}"
@@ -62,28 +61,31 @@ jobs:
 
       - name: Sync from git-repo sources
         run: |
-          for source in $(jq -c '.sources[] | select(.type == "git-repo")' sync-manifest.json); do
+          sources=$(jq -c '.sources[] | select(.type == "git-repo")' sync-manifest.json)
+          if [ -z "$sources" ]; then
+            echo "No git-repo sources configured, skipping."
+            exit 0
+          fi
+
+          echo "$sources" | while read -r source; do
             name=$(echo "$source" | jq -r '.name')
             repo=$(echo "$source" | jq -r '.repo')
             branch=$(echo "$source" | jq -r '.branch // "main"')
 
             echo "::group::Syncing $name from $repo"
 
-            # Clone source repo
             tmp_dir=$(mktemp -d)
             git clone --depth 1 --branch "$branch" "$repo" "$tmp_dir" 2>/dev/null || {
               echo "  Warning: Failed to clone $repo"
               continue
             }
 
-            # Process each mapping
             echo "$source" | jq -c '.mappings[]' | while read -r mapping; do
               src_path=$(echo "$mapping" | jq -r '.source')
               dest_path=$(echo "$mapping" | jq -r '.destination')
 
               if [ -d "$tmp_dir/$src_path" ]; then
                 mkdir -p "$dest_path"
-                # Sync files, preserving structure and removing deleted files
                 rsync -av --delete \
                   --exclude='README.md' \
                   "$tmp_dir/$src_path/" "$dest_path/"
