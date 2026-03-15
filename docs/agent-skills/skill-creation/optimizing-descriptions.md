@@ -12,7 +12,7 @@ This guide covers how to systematically test and improve your skill's descriptio
 
 ## How skill triggering works
 
-Agents use progressive disclosure to manage context. At startup, they load only the `name` and `description` of each available skill — just enough to decide when a skill might be relevant. When a user's task matches a description, the agent reads the full `SKILL.md` into context and follows its instructions.
+Agents use [progressive disclosure](/what-are-skills#how-skills-work) to manage context. At startup, they load only the `name` and `description` of each available skill — just enough to decide when a skill might be relevant. When a user's task matches a description, the agent reads the full `SKILL.md` into context and follows its instructions.
 
 This means the description carries the entire burden of triggering. If the description doesn't convey when the skill is useful, the agent won't know to reach for it.
 
@@ -25,13 +25,13 @@ Before testing, it helps to know what a good description looks like. A few princ
 * **Use imperative phrasing.** Frame the description as an instruction to the agent: "Use this skill when..." rather than "This skill does..." The agent is deciding whether to act, so tell it when to act.
 * **Focus on user intent, not implementation.** Describe what the user is trying to achieve, not the skill's internal mechanics. The agent matches against what the user asked for.
 * **Err on the side of being pushy.** Explicitly list contexts where the skill applies, including cases where the user doesn't name the domain directly: "even if they don't explicitly mention 'CSV' or 'analysis.'"
-* **Keep it concise.** A few sentences to a short paragraph is usually right — long enough to cover the skill's scope, short enough that it doesn't bloat the agent's context across many skills. The specification enforces a hard limit of 1024 characters.
+* **Keep it concise.** A few sentences to a short paragraph is usually right — long enough to cover the skill's scope, short enough that it doesn't bloat the agent's context across many skills. The [specification](/specification#description-field) enforces a hard limit of 1024 characters.
 
 ## Designing trigger eval queries
 
 To test triggering, you need a set of eval queries — realistic user prompts labeled with whether they should or shouldn't trigger your skill.
 
-```json
+```json eval_queries.json theme={null}
 [
   { "query": "I've got a spreadsheet in ~/data/q4_results.xlsx with revenue in col C and expenses in col D — can you add a profit margin column and highlight anything under 10%?", "should_trigger": true },
   { "query": "whats the quickest way to convert this json file to yaml", "should_trigger": false }
@@ -91,7 +91,47 @@ Model behavior is nondeterministic — the same query might trigger the skill on
 
 A should-trigger query passes if its trigger rate is above a threshold (0.5 is a reasonable default). A should-not-trigger query passes if its trigger rate is below that threshold.
 
-With 20 queries at 3 runs each, that's 60 invocations. You'll want to script this.
+With 20 queries at 3 runs each, that's 60 invocations. You'll want to script this. Here's the general structure — replace the `claude` invocation and detection logic in `check_triggered` with whatever your agent client provides:
+
+```bash  theme={null}
+#!/bin/bash
+QUERIES_FILE="${1:?Usage: $0 <queries.json>}"
+SKILL_NAME="my-skill"
+RUNS=3
+
+# This example uses Claude Code's JSON output to check for Skill tool calls.
+# Replace this function with detection logic for your agent client.
+# Should return 0 (success) if the skill was invoked, 1 otherwise.
+check_triggered() {
+  local query="$1"
+  claude -p "$query" --output-format json 2>/dev/null \
+    | jq -e --arg skill "$SKILL_NAME" \
+      'any(.messages[].content[]; .type == "tool_use" and .name == "Skill" and .input.skill == $skill)' \
+      > /dev/null 2>&1
+}
+
+count=$(jq length "$QUERIES_FILE")
+for i in $(seq 0 $((count - 1))); do
+  query=$(jq -r ".[$i].query" "$QUERIES_FILE")
+  should_trigger=$(jq -r ".[$i].should_trigger" "$QUERIES_FILE")
+  triggers=0
+
+  for run in $(seq 1 $RUNS); do
+    check_triggered "$query" && triggers=$((triggers + 1))
+  done
+
+  jq -n \
+    --arg query "$query" \
+    --argjson should_trigger "$should_trigger" \
+    --argjson triggers "$triggers" \
+    --argjson runs "$RUNS" \
+    '{query: $query, should_trigger: $should_trigger, triggers: $triggers, runs: $runs, trigger_rate: ($triggers / $runs)}'
+done | jq -s '.'
+```
+
+<Tip>
+  If your agent client supports it, you can stop a run early once the outcome is clear — the agent either consulted the skill or started working without it. This can significantly reduce the time and cost of running the full eval set.
+</Tip>
 
 ## Avoiding overfitting with train/validation splits
 
@@ -99,10 +139,12 @@ If you optimize the description against all your queries, you risk overfitting �
 
 The solution is to split your query set:
 
-* **Train set (~60%)**: the queries you use to identify failures and guide improvements.
-* **Validation set (~40%)**: queries you set aside and only use to check whether improvements generalize.
+* **Train set (\~60%)**: the queries you use to identify failures and guide improvements.
+* **Validation set (\~40%)**: queries you set aside and only use to check whether improvements generalize.
 
 Make sure both sets contain a proportional mix of should-trigger and should-not-trigger queries — don't accidentally put all the positives in one set. Shuffle randomly and keep the split fixed across iterations so you're comparing apples to apples.
+
+If you're using a script like the one [above](#running-multiple-times), you can split your queries into two files — `train_queries.json` and `validation_queries.json` — and run the script against each one separately.
 
 ## The optimization loop
 
@@ -120,19 +162,21 @@ Make sure both sets contain a proportional mix of should-trigger and should-not-
 
 Five iterations is usually enough. If performance isn't improving, the issue may be with the queries (too easy, too hard, or poorly labeled) rather than the description.
 
-> **Tip:** The [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) Skill automates this loop end-to-end: it splits the eval set, evaluates trigger rates in parallel, proposes description improvements using Claude, and generates a live HTML report you can watch as it runs.
+<Tip>
+  The [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) Skill automates this loop end-to-end: it splits the eval set, evaluates trigger rates in parallel, proposes description improvements using Claude, and generates a live HTML report you can watch as it runs.
+</Tip>
 
 ## Applying the result
 
 Once you've selected the best description:
 
 1. Update the `description` field in your `SKILL.md` frontmatter.
-2. Verify the description is under the 1024-character limit.
+2. Verify the description is under the [1024-character limit](/specification#description-field).
 3. Verify the description triggers as expected. Try a few prompts manually as a quick sanity check. For a more rigorous test, write 5-10 fresh queries (a mix of should-trigger and should-not-trigger) and run them through the eval script — since these queries were never part of the optimization process, they give you an honest check on whether the description generalizes.
 
 Before and after:
 
-```yaml
+```yaml  theme={null}
 # Before
 description: Process CSV files.
 
@@ -150,3 +194,6 @@ The improved description is more specific about what the skill does (summary sta
 ## Next steps
 
 Once your skill triggers reliably, you'll want to evaluate whether it produces good outputs. See [Evaluating skill output quality](/skill-creation/evaluating-skills) for how to set up test cases, grade results, and iterate.
+
+
+Built with [Mintlify](https://mintlify.com).
