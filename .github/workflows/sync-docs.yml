@@ -164,6 +164,9 @@ jobs:
           sources_list=$(jq -r '.sources[] | "- **\(.name)** (\(.type)): \(.description)"' sync-manifest.json)
           printf -v pr_body "## Summary\nAutomated daily sync of documentation from source repositories.\n\nSources synced (defined in \`sync-manifest.json\`):\n%s\n\n---\nGenerated automatically by the sync-docs workflow." "$sources_list"
 
-          gh pr create \
+          pr_url=$(gh pr create \
             --title "chore(documentation): sync docs from source repos" \
-            --body "$pr_body"
+            --body "$pr_body")
+
+          # Auto-merge once required status checks pass
+          gh pr merge "$pr_url" --auto --merge

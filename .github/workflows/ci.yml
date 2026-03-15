@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate sync manifest
+        run: jq empty sync-manifest.json
+
+      - name: Validate workflow YAML
+        run: python3 -c "import yaml; yaml.safe_load(open('.github/workflows/sync-docs.yml'))"
+
+      - name: Check for broken markdown links in READMEs
+        run: |
+          status=0
+          for readme in $(find docs -name 'README.md'); do
+            # Check that referenced .md files exist
+            grep -oE '\[.*?\]\(([^)]+\.md)\)' "$readme" | grep -oE '\(.*\)' | tr -d '()' | while read -r link; do
+              # Skip URLs
+              if echo "$link" | grep -qE '^https?://'; then continue; fi
+              # Resolve relative to the README's directory
+              dir=$(dirname "$readme")
+              if [ ! -f "$dir/$link" ]; then
+                echo "::warning file=$readme::Broken link: $link"
+              fi
+            done
+          done
