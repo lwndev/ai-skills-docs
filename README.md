@@ -30,8 +30,7 @@ docs/
     ├── overview.md                        # Claude Code overview
     ├── mcp.md                             # MCP integration
     ├── memory.md                          # Memory/CLAUDE.md
-    ├── ...                                # All other code.claude.com docs
-    └── The-Complete-Guide-to-Building-Skill-for-Claude.pdf
+    └── ...                                # All other code.claude.com docs
 ```
 
 ## Automated sync

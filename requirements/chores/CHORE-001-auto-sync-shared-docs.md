@@ -31,8 +31,6 @@ Set up automated daily syncing of documents from source documentation sites into
 | agentskills.io | `llms-txt` | `https://agentskills.io/llms.txt` | `docs/agent-skills/` |
 | code.claude.com | `llms-txt` | `https://code.claude.com/docs/llms.txt` | `docs/anthropic/` |
 
-The PDF (`The-Complete-Guide-to-Building-Skill-for-Claude.pdf`) is sourced separately from `resources.anthropic.com` and is not part of the automated sync.
-
 ## Acceptance Criteria
 
 - [x] `sync-manifest.json` exists at the repo root with both sources configured as `llms-txt` type
