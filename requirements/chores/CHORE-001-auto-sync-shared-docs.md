@@ -65,11 +65,11 @@ New files from agentskills.io not yet in this repo:
 
 ## Completion
 
-**Status:** `Pending`
+**Status:** `Completed`
 
-**Completed:** —
+**Completed:** 2026-03-15
 
-**Pull Request:** —
+**Pull Request:** [#2](https://github.com/lwndev/ai-skills-docs/pull/2)
 
 ## Notes
 
