@@ -151,14 +151,7 @@ jobs:
 
           # Build PR body into a variable to avoid heredoc indentation issues in YAML
           sources_list=$(jq -r '.sources[] | "- **\(.name)** (\(.type)): \(.description)"' sync-manifest.json)
-          pr_body="## Summary
-          Automated daily sync of documentation from source repositories.
-
-          Sources synced (defined in \`sync-manifest.json\`):
-          ${sources_list}
-
-          ---
-          Generated automatically by the sync-docs workflow."
+          printf -v pr_body "## Summary\nAutomated daily sync of documentation from source repositories.\n\nSources synced (defined in \`sync-manifest.json\`):\n%s\n\n---\nGenerated automatically by the sync-docs workflow." "$sources_list"
 
           gh pr create \
             --title "chore(documentation): sync docs from source repos" \
