@@ -18,7 +18,7 @@ A test case has three parts:
 
 Store test cases in `evals/evals.json` inside your skill directory:
 
-```json
+```json evals/evals.json theme={null}
 {
   "skill_name": "csv-analyzer",
   "evals": [
@@ -111,14 +111,16 @@ When improving an existing skill, use the previous version as your baseline. Sna
 
 Timing data lets you compare how much time and tokens the skill costs relative to the baseline — a skill that dramatically improves output quality but triples token usage is a different trade-off than one that's both better and cheaper. When each run completes, record the token count and duration:
 
-```json
+```json timing.json theme={null}
 {
   "total_tokens": 84852,
   "duration_ms": 23332
 }
 ```
 
-> **Tip:** In Claude Code, when a subagent task finishes, the task completion notification includes `total_tokens` and `duration_ms`. Save these values immediately — they aren't persisted anywhere else.
+<Tip>
+  In Claude Code, when a subagent task finishes, the [task completion notification](https://platform.claude.com/docs/en/agent-sdk/typescript#sdk-task-notification-message) includes `total_tokens` and `duration_ms`. Save these values immediately — they aren't persisted anywhere else.
+</Tip>
 
 ## Writing assertions
 
@@ -135,11 +137,11 @@ Weak assertions:
 * `"The output is good"` — too vague to grade.
 * `"The output uses exactly the phrase 'Total Revenue: $X'"` — too brittle; correct output with different wording would fail.
 
-Not everything needs an assertion. Some qualities — writing style, visual design, whether the output "feels right" — are hard to decompose into pass/fail checks. These are better caught during human review. Reserve assertions for things that can be checked objectively.
+Not everything needs an assertion. Some qualities — writing style, visual design, whether the output "feels right" — are hard to decompose into pass/fail checks. These are better caught during [human review](#reviewing-results-with-a-human). Reserve assertions for things that can be checked objectively.
 
 Add assertions to each test case in `evals/evals.json`:
 
-```json
+```json evals/evals.json highlight={9-14} theme={null}
 {
   "skill_name": "csv-analyzer",
   "evals": [
@@ -165,7 +167,7 @@ Grading means evaluating each assertion against the actual outputs and recording
 
 The simplest approach is to give the outputs and assertions to an LLM and ask it to evaluate each one. For assertions that can be checked by code (valid JSON, correct row count, file exists with expected dimensions), use a verification script — scripts are more reliable than LLM judgment for mechanical checks and reusable across iterations.
 
-```json
+```json grading.json theme={null}
 {
   "assertion_results": [
     {
@@ -203,13 +205,15 @@ The simplest approach is to give the outputs and assertions to an LLM and ask it
 * **Require concrete evidence for a PASS.** Don't give the benefit of the doubt. If an assertion says "includes a summary" and the output has a section titled "Summary" with one vague sentence, that's a FAIL — the label is there but the substance isn't.
 * **Review the assertions themselves, not just the results.** While grading, notice when assertions are too easy (always pass regardless of skill quality), too hard (always fail even when the output is good), or unverifiable (can't be checked from the output alone). Fix these for the next iteration.
 
-> **Tip:** For comparing two skill versions, try **blind comparison**: present both outputs to an LLM judge without revealing which came from which version. The judge scores holistic qualities — organization, formatting, usability, polish — on its own rubric, free from bias about which version "should" be better. This complements assertion grading: two outputs might both pass all assertions but differ significantly in overall quality.
+<Tip>
+  For comparing two skill versions, try **blind comparison**: present both outputs to an LLM judge without revealing which came from which version. The judge scores holistic qualities — organization, formatting, usability, polish — on its own rubric, free from bias about which version "should" be better. This complements assertion grading: two outputs might both pass all assertions but differ significantly in overall quality.
+</Tip>
 
 ## Aggregating results
 
-Once every run in the iteration is graded, compute summary statistics per configuration and save them to `benchmark.json` alongside the eval directories:
+Once every run in the iteration is graded, compute summary statistics per configuration and save them to `benchmark.json` alongside the eval directories (e.g., `csv-analyzer-workspace/iteration-1/benchmark.json`):
 
-```json
+```json benchmark.json theme={null}
 {
   "run_summary": {
     "with_skill": {
@@ -233,7 +237,9 @@ Once every run in the iteration is graded, compute summary statistics per config
 
 The `delta` tells you what the skill costs (more time, more tokens) and what it buys (higher pass rate). A skill that adds 13 seconds but improves pass rate by 50 percentage points is probably worth it. A skill that doubles token usage for a 2-point improvement might not be.
 
-> **Note:** Standard deviation (`stddev`) is only meaningful with multiple runs per eval. In early iterations with just 2-3 test cases and single runs, focus on the raw pass counts and the delta — the statistical measures become useful as you expand the test set and run each eval multiple times.
+<Note>
+  Standard deviation (`stddev`) is only meaningful with multiple runs per eval. In early iterations with just 2-3 test cases and single runs, focus on the raw pass counts and the delta — the statistical measures become useful as you expand the test set and run each eval multiple times.
+</Note>
 
 ## Analyzing patterns
 
@@ -251,14 +257,14 @@ Assertion grading and pattern analysis catch a lot, but they only check what you
 
 Record specific feedback for each test case and save it in the workspace (e.g., as a `feedback.json` alongside the eval directories):
 
-```json
+```json feedback.json theme={null}
 {
   "eval-top-months-chart": "The chart is missing axis labels and the months are in alphabetical order instead of chronological.",
   "eval-clean-missing-emails": ""
 }
 ```
 
-"The chart is missing axis labels" is actionable; "looks bad" is not. Empty feedback means the output looked fine — that test case passed your review. During the iteration step, focus your improvements on the test cases where you had specific complaints.
+"The chart is missing axis labels" is actionable; "looks bad" is not. Empty feedback means the output looked fine — that test case passed your review. During the [iteration step](#iterating-on-the-skill), focus your improvements on the test cases where you had specific complaints.
 
 ## Iterating on the skill
 
@@ -285,4 +291,9 @@ The most effective way to turn these signals into skill improvements is to give 
 
 Stop when you're satisfied with the results, feedback is consistently empty, or you're no longer seeing meaningful improvement between iterations.
 
-> **Tip:** The [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) Skill automates much of this workflow — running evals, grading assertions, aggregating benchmarks, and presenting results for human review.
+<Tip>
+  The [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) Skill automates much of this workflow — running evals, grading assertions, aggregating benchmarks, and presenting results for human review.
+</Tip>
+
+
+Built with [Mintlify](https://mintlify.com).
