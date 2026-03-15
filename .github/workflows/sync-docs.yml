@@ -144,6 +144,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Delete stale remote branch if it exists from a prior run
+          if git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
+            # Only delete if no open PR exists for this branch
+            if ! gh pr list --head "$branch_name" --state open --json number --jq '.[0].number' | grep -q .; then
+              git push origin --delete "$branch_name"
+            else
+              echo "PR already exists for $branch_name, skipping."
+              exit 0
+            fi
+          fi
+
           git checkout -b "$branch_name"
           git commit -m "chore(documentation): sync docs from source repos"
 
