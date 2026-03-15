@@ -1,0 +1,36 @@
+{
+  "sources": [
+    {
+      "name": "agentskills.io",
+      "type": "llms-txt",
+      "llms_txt_url": "https://agentskills.io/llms.txt",
+      "destination": "docs/agent-skills",
+      "description": "Open source Agent Skills specification from agentskills.io"
+    },
+    {
+      "name": "anthropic-skills",
+      "type": "git-repo",
+      "repo": "https://github.com/lwndev/lwndev-agent-skills.git",
+      "branch": "main",
+      "mappings": [
+        {
+          "source": "docs/anthropic/skills",
+          "destination": "docs/anthropic/skills"
+        },
+        {
+          "source": "docs/anthropic/hooks",
+          "destination": "docs/anthropic/hooks"
+        },
+        {
+          "source": "docs/anthropic/agents",
+          "destination": "docs/anthropic/agents"
+        },
+        {
+          "source": "docs/anthropic/plugins",
+          "destination": "docs/anthropic/plugins"
+        }
+      ],
+      "description": "Anthropic Claude Code documentation from lwndev-agent-skills"
+    }
+  ]
+}

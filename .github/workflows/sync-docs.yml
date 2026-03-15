@@ -1,0 +1,139 @@
+name: Sync Documentation
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Daily at 6:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync from llms-txt sources
+        run: |
+          # Read manifest and process llms-txt sources
+          for source in $(jq -c '.sources[] | select(.type == "llms-txt")' sync-manifest.json); do
+            name=$(echo "$source" | jq -r '.name')
+            llms_txt_url=$(echo "$source" | jq -r '.llms_txt_url')
+            destination=$(echo "$source" | jq -r '.destination')
+
+            echo "::group::Syncing $name from $llms_txt_url"
+
+            # Fetch llms.txt index
+            llms_txt=$(curl -fsSL "$llms_txt_url")
+
+            # Parse doc URLs from llms.txt (lines matching markdown link format)
+            echo "$llms_txt" | grep -oP '\(https://[^)]+\.md\)' | tr -d '()' | while read -r url; do
+              # Extract the path portion after the domain
+              path=$(echo "$url" | sed -E 's|https://[^/]+/||')
+
+              # Create destination directory if needed
+              dest_dir="$destination/$(dirname "$path")"
+              mkdir -p "$dest_dir"
+
+              # Download the file
+              dest_file="$destination/$path"
+              echo "  Downloading $url -> $dest_file"
+              curl -fsSL "$url" -o "$dest_file" || echo "  Warning: Failed to download $url"
+            done
+
+            # Remove local files that no longer exist in the source index
+            if [ -d "$destination" ]; then
+              find "$destination" -name '*.md' -not -name 'README.md' | while read -r local_file; do
+                rel_path="${local_file#$destination/}"
+                base_url=$(echo "$llms_txt_url" | sed 's|/llms.txt$||')
+                check_url="$base_url/$rel_path"
+                if ! echo "$llms_txt" | grep -qF "$check_url"; then
+                  echo "  Removing stale file: $local_file"
+                  rm "$local_file"
+                fi
+              done
+            fi
+
+            echo "::endgroup::"
+          done
+
+      - name: Sync from git-repo sources
+        run: |
+          for source in $(jq -c '.sources[] | select(.type == "git-repo")' sync-manifest.json); do
+            name=$(echo "$source" | jq -r '.name')
+            repo=$(echo "$source" | jq -r '.repo')
+            branch=$(echo "$source" | jq -r '.branch // "main"')
+
+            echo "::group::Syncing $name from $repo"
+
+            # Clone source repo
+            tmp_dir=$(mktemp -d)
+            git clone --depth 1 --branch "$branch" "$repo" "$tmp_dir" 2>/dev/null || {
+              echo "  Warning: Failed to clone $repo"
+              continue
+            }
+
+            # Process each mapping
+            echo "$source" | jq -c '.mappings[]' | while read -r mapping; do
+              src_path=$(echo "$mapping" | jq -r '.source')
+              dest_path=$(echo "$mapping" | jq -r '.destination')
+
+              if [ -d "$tmp_dir/$src_path" ]; then
+                mkdir -p "$dest_path"
+                # Sync files, preserving structure and removing deleted files
+                rsync -av --delete \
+                  --exclude='README.md' \
+                  "$tmp_dir/$src_path/" "$dest_path/"
+              elif [ -f "$tmp_dir/$src_path" ]; then
+                mkdir -p "$(dirname "$dest_path")"
+                cp "$tmp_dir/$src_path" "$dest_path"
+              else
+                echo "  Warning: Source path not found: $src_path"
+              fi
+            done
+
+            rm -rf "$tmp_dir"
+            echo "::endgroup::"
+          done
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add -A docs/
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch_name="auto/sync-docs-$(date +%Y%m%d)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$branch_name"
+          git commit -m "chore(documentation): sync docs from source repos"
+
+          git push -u origin "$branch_name"
+
+          gh pr create \
+            --title "chore(documentation): sync docs from source repos" \
+            --body "$(cat <<'EOF'
+          ## Summary
+          Automated daily sync of documentation from source repositories.
+
+          Sources synced (defined in `sync-manifest.json`):
+          $(jq -r '.sources[] | "- **\(.name)** (\(.type)): \(.description)"' sync-manifest.json)
+
+          ---
+          Generated automatically by the sync-docs workflow.
+          EOF
+          )"
