@@ -244,7 +244,7 @@ LSP integration provides:
 
 Install the language server first, then install the plugin from the marketplace.
 
----
+***
 
 ## Plugin installation scopes
 
@@ -259,13 +259,13 @@ When you install a plugin, you choose a **scope** that determines where the plug
 
 Plugins use the same scope system as other Claude Code configurations. For installation instructions and scope flags, see [Install plugins](/en/discover-plugins#install-plugins). For a complete explanation of scopes, see [Configuration scopes](/en/settings#configuration-scopes).
 
----
+***
 
 ## Plugin manifest schema
 
 The `.claude-plugin/plugin.json` file defines your plugin's metadata and configuration. This section documents all supported fields and options.
 
-The manifest is optional. If omitted, Claude Code auto-discovers components in [default locations](#file-locations-reference) and derives the plugin name from the directory name.
+The manifest is optional. If omitted, Claude Code auto-discovers components in [default locations](#file-locations-reference) and derives the plugin name from the directory name. Use a manifest when you need to provide metadata or custom component paths.
 
 ### Complete schema
 
@@ -374,7 +374,7 @@ agent `agent-creator` for the plugin with name `plugin-dev` will appear as
 }
 ```
 
----
+***
 
 ## Plugin caching and file resolution
 
@@ -400,7 +400,7 @@ ln -s /path/to/shared-utils ./shared-utils
 
 The symlinked content will be copied into the plugin cache. This provides flexibility while maintaining the security benefits of the caching system.
 
----
+***
 
 ## Plugin directory structure
 
@@ -456,7 +456,7 @@ enterprise-plugin/
 | **LSP servers** | `.lsp.json`                  | Language server configurations                                                                                            |
 | **Settings**    | `settings.json`              | Default configuration applied when the plugin is enabled. Only [`agent`](/en/sub-agents) settings are currently supported |
 
----
+***
 
 ## CLI commands reference
 
@@ -574,7 +574,7 @@ claude plugin update <plugin> [options]
 | `-s, --scope <scope>` | Scope to update: `user`, `project`, `local`, or `managed` | `user`  |
 | `-h, --help`          | Display help for command                                  |         |
 
----
+***
 
 ## Debugging and development tools
 
@@ -653,10 +653,10 @@ This shows:
 ```text  theme={null}
 my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json      <- Only manifest here
-├── commands/            <- At root level
-├── agents/              <- At root level
-└── hooks/               <- At root level
+│   └── plugin.json      ← Only manifest here
+├── commands/            ← At root level
+├── agents/              ← At root level
+└── hooks/               ← At root level
 ```
 
 If your components are inside `.claude-plugin/`, move them to the plugin root.
@@ -667,7 +667,7 @@ If your components are inside `.claude-plugin/`, move them to the plugin root.
 2. Check that each component directory is listed in the debug output
 3. Verify file permissions allow reading the plugin files
 
----
+***
 
 ## Distribution and versioning reference
 
@@ -701,7 +701,7 @@ Follow semantic versioning for plugin releases:
   If your plugin is within a [marketplace](/en/plugin-marketplaces) directory, you can manage the version through `marketplace.json` instead and omit the `version` field from `plugin.json`.
 </Warning>
 
----
+***
 
 ## See also
 

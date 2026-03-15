@@ -1,0 +1,18 @@
+{
+  "sources": [
+    {
+      "name": "agentskills.io",
+      "type": "llms-txt",
+      "llms_txt_url": "https://agentskills.io/llms.txt",
+      "destination": "docs/agent-skills",
+      "description": "Open source Agent Skills specification from agentskills.io"
+    },
+    {
+      "name": "code.claude.com",
+      "type": "llms-txt",
+      "llms_txt_url": "https://code.claude.com/docs/llms.txt",
+      "destination": "docs/anthropic",
+      "description": "Claude Code official documentation from code.claude.com"
+    }
+  ]
+}
