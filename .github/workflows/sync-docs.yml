@@ -18,20 +18,36 @@ jobs:
 
       - name: Sync from llms-txt sources
         run: |
-          for source in $(jq -c '.sources[] | select(.type == "llms-txt")' sync-manifest.json); do
+          jq -c '.sources[] | select(.type == "llms-txt")' sync-manifest.json | while read -r source; do
             name=$(echo "$source" | jq -r '.name')
             llms_txt_url=$(echo "$source" | jq -r '.llms_txt_url')
             destination=$(echo "$source" | jq -r '.destination')
 
             echo "::group::Syncing $name from $llms_txt_url"
 
-            # Fetch llms.txt index
-            llms_txt=$(curl -fsSL "$llms_txt_url")
+            # Fetch llms.txt index — abort if fetch fails to prevent stale-file deletion
+            llms_txt=$(curl -fsSL "$llms_txt_url") || {
+              echo "::error::Failed to fetch $llms_txt_url — skipping $name to avoid deleting existing files"
+              echo "::endgroup::"
+              continue
+            }
+
+            if [ -z "$llms_txt" ]; then
+              echo "::error::Empty response from $llms_txt_url — skipping $name to avoid deleting existing files"
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Collect the set of expected relative paths for staleness check
+            expected_paths=$(mktemp)
 
             # Parse doc URLs from llms.txt (markdown link format)
             echo "$llms_txt" | grep -oE 'https://[^)]+\.md' | while read -r url; do
               # Extract the path portion after the domain
               path=$(echo "$url" | sed -E 's|https://[^/]+/||')
+
+              # Track this path as expected
+              echo "$path" >> "$expected_paths"
 
               # Create destination directory if needed
               dest_dir="$destination/$(dirname "$path")"
@@ -47,15 +63,14 @@ jobs:
             if [ -d "$destination" ]; then
               find "$destination" -name '*.md' -not -name 'README.md' | while read -r local_file; do
                 rel_path="${local_file#$destination/}"
-                base_url=$(echo "$llms_txt_url" | sed 's|/llms.txt$||')
-                check_url="$base_url/$rel_path"
-                if ! echo "$llms_txt" | grep -qF "$check_url"; then
+                if ! grep -qxF "$rel_path" "$expected_paths"; then
                   echo "  Removing stale file: $local_file"
                   rm "$local_file"
                 fi
               done
             fi
 
+            rm -f "$expected_paths"
             echo "::endgroup::"
           done
 
@@ -67,7 +82,7 @@ jobs:
             exit 0
           fi
 
-          echo "$sources" | while read -r source; do
+          while read -r source; do
             name=$(echo "$source" | jq -r '.name')
             repo=$(echo "$source" | jq -r '.repo')
             branch=$(echo "$source" | jq -r '.branch // "main"')
@@ -77,6 +92,8 @@ jobs:
             tmp_dir=$(mktemp -d)
             git clone --depth 1 --branch "$branch" "$repo" "$tmp_dir" 2>/dev/null || {
               echo "  Warning: Failed to clone $repo"
+              rm -rf "$tmp_dir"
+              echo "::endgroup::"
               continue
             }
 
@@ -86,9 +103,15 @@ jobs:
 
               if [ -d "$tmp_dir/$src_path" ]; then
                 mkdir -p "$dest_path"
-                rsync -av --delete \
-                  --exclude='README.md' \
-                  "$tmp_dir/$src_path/" "$dest_path/"
+                cp -a "$tmp_dir/$src_path/." "$dest_path/"
+                # Remove files in destination that no longer exist in source (excluding README.md)
+                find "$dest_path" -type f -not -name 'README.md' | while read -r dest_file; do
+                  rel="${dest_file#$dest_path/}"
+                  if [ ! -e "$tmp_dir/$src_path/$rel" ]; then
+                    echo "  Removing stale file: $dest_file"
+                    rm "$dest_file"
+                  fi
+                done
               elif [ -f "$tmp_dir/$src_path" ]; then
                 mkdir -p "$(dirname "$dest_path")"
                 cp "$tmp_dir/$src_path" "$dest_path"
@@ -99,7 +122,7 @@ jobs:
 
             rm -rf "$tmp_dir"
             echo "::endgroup::"
-          done
+          done <<< "$sources"
 
       - name: Check for changes
         id: changes
@@ -126,16 +149,19 @@ jobs:
 
           git push -u origin "$branch_name"
 
+          # Build PR body with variable expansion (unquoted heredoc delimiter)
+          sources_list=$(jq -r '.sources[] | "- **\(.name)** (\(.type)): \(.description)"' sync-manifest.json)
+
           gh pr create \
             --title "chore(documentation): sync docs from source repos" \
-            --body "$(cat <<'EOF'
-          ## Summary
-          Automated daily sync of documentation from source repositories.
+            --body "$(cat <<EOF
+## Summary
+Automated daily sync of documentation from source repositories.
 
-          Sources synced (defined in `sync-manifest.json`):
-          $(jq -r '.sources[] | "- **\(.name)** (\(.type)): \(.description)"' sync-manifest.json)
+Sources synced (defined in \`sync-manifest.json\`):
+${sources_list}
 
-          ---
-          Generated automatically by the sync-docs workflow.
-          EOF
+---
+Generated automatically by the sync-docs workflow.
+EOF
           )"
