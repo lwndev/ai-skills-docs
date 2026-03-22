@@ -223,6 +223,12 @@ export const LogoCarousel = () => {
     lightSrc: "/images/logos/snowflake/snowflake-logo-light.svg",
     darkSrc: "/images/logos/snowflake/snowflake-logo-dark.svg",
     instructionsUrl: "https://docs.snowflake.com/en/user-guide/cortex-code/extensibility#extensibility-skills"
+  }, {
+    name: "Kiro",
+    url: "https://kiro.dev/",
+    lightSrc: "/images/logos/kiro/kiro-logo-light.svg",
+    darkSrc: "/images/logos/kiro/kiro-logo-dark.svg",
+    instructionsUrl: "https://kiro.dev/docs/skills/"
   }];
   const [shuffled, setShuffled] = useState(logos);
   useEffect(() => {
