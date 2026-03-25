@@ -283,6 +283,14 @@ Actions available in the `Settings` context:
 | `settings:search` | /       | Enter search mode                   |
 | `settings:retry`  | R       | Retry loading usage data (on error) |
 
+### Voice actions
+
+Actions available in the `Chat` context when [voice dictation](/en/voice-dictation) is enabled:
+
+| Action             | Default | Description              |
+| :----------------- | :------ | :----------------------- |
+| `voice:pushToTalk` | Space   | Hold to dictate a prompt |
+
 ## Keystroke syntax
 
 ### Modifiers
@@ -347,10 +355,11 @@ Set an action to `null` to unbind a default shortcut:
 
 These shortcuts cannot be rebound:
 
-| Shortcut | Reason                     |
-| :------- | :------------------------- |
-| Ctrl+C   | Hardcoded interrupt/cancel |
-| Ctrl+D   | Hardcoded exit             |
+| Shortcut | Reason                                         |
+| :------- | :--------------------------------------------- |
+| Ctrl+C   | Hardcoded interrupt/cancel                     |
+| Ctrl+D   | Hardcoded exit                                 |
+| Ctrl+M   | Identical to Enter in terminals (both send CR) |
 
 ## Terminal conflicts
 
