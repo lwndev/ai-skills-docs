@@ -124,7 +124,7 @@ This creates a new session ID while preserving the conversation history up to th
 
 ### The context window
 
-Claude's context window holds your conversation history, file contents, command outputs, [CLAUDE.md](/en/memory), loaded skills, and system instructions. As you work, context fills up. Claude compacts automatically, but instructions from early in the conversation can get lost. Put persistent rules in CLAUDE.md, and run `/context` to see what's using space.
+Claude's context window holds your conversation history, file contents, command outputs, [CLAUDE.md](/en/memory), [auto memory](/en/memory#auto-memory), loaded skills, and system instructions. As you work, context fills up. Claude compacts automatically, but instructions from early in the conversation can get lost. Put persistent rules in CLAUDE.md, and run `/context` to see what's using space.
 
 #### When context fills up
 
@@ -161,6 +161,7 @@ Press `Shift+Tab` to cycle through permission modes:
 * **Default**: Claude asks before file edits and shell commands
 * **Auto-accept edits**: Claude edits files without asking, still asks for commands
 * **Plan mode**: Claude uses read-only tools only, creating a plan you can approve before execution
+* **Auto mode**: Claude evaluates all actions with background safety checks. Currently a research preview
 
 You can also allow specific commands in `.claude/settings.json` so Claude doesn't ask each time. This is useful for trusted commands like `npm test` or `git status`. Settings can be scoped from organization-wide policies down to personal preferences. See [Permissions](/en/permissions) for details.
 
