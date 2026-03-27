@@ -223,6 +223,12 @@ export const LogoCarousel = () => {
     lightSrc: "/images/logos/snowflake/snowflake-logo-light.svg",
     darkSrc: "/images/logos/snowflake/snowflake-logo-dark.svg",
     instructionsUrl: "https://docs.snowflake.com/en/user-guide/cortex-code/extensibility#extensibility-skills"
+  }, {
+    name: "Kiro",
+    url: "https://kiro.dev/",
+    lightSrc: "/images/logos/kiro/kiro-logo-light.svg",
+    darkSrc: "/images/logos/kiro/kiro-logo-dark.svg",
+    instructionsUrl: "https://kiro.dev/docs/skills/"
   }];
   const [shuffled, setShuffled] = useState(logos);
   useEffect(() => {
@@ -311,7 +317,7 @@ Agent Skills are supported by leading AI development tools.
 
 The Agent Skills format was originally developed by [Anthropic](https://www.anthropic.com/), released as an open standard, and has been adopted by a growing number of agent products. The standard is open to contributions from the broader ecosystem.
 
-[View on GitHub](https://github.com/agentskills/agentskills)
+Come join the discussion on [GitHub](https://github.com/agentskills/agentskills) or [Discord](https://discord.gg/MKPE9g8aUy)!
 
 ## Get started
 
