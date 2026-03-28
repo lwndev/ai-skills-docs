@@ -131,7 +131,7 @@ This quickstart walks you through creating a plugin with a custom skill. You'll 
     You'll see Claude respond with a greeting. Run `/help` to see your skill listed under the plugin namespace.
 
     <Note>
-      **Why namespacing?** Plugin skills are always namespaced (like `/greet:hello`) to prevent conflicts when multiple plugins have skills with the same name.
+      **Why namespacing?** Plugin skills are always namespaced (like `/my-first-plugin:hello`) to prevent conflicts when multiple plugins have skills with the same name.
 
       To change the namespace prefix, update the `name` field in `plugin.json`.
     </Note>
@@ -283,7 +283,7 @@ claude --plugin-dir ./my-plugin
 
 When a `--plugin-dir` plugin has the same name as an installed marketplace plugin, the local copy takes precedence for that session. This lets you test changes to a plugin you already have installed without uninstalling it first. Marketplace plugins force-enabled by managed settings are the only exception and cannot be overridden.
 
-As you make changes to your plugin, run `/reload-plugins` to pick up the updates without restarting. Changes to LSP server configuration still require a full restart. Test your plugin components:
+As you make changes to your plugin, run `/reload-plugins` to pick up the updates without restarting. This reloads plugins, skills, agents, hooks, plugin MCP servers, and plugin LSP servers. Test your plugin components:
 
 * Try your skills with `/plugin-name:skill-name`
 * Check that agents appear in `/agents`
