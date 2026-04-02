@@ -223,6 +223,7 @@ With MCP servers connected, you can ask Claude Code to:
 * **Query databases**: "Find emails of 10 random users who used feature ENG-4521, based on our PostgreSQL database."
 * **Integrate designs**: "Update our standard email template based on the new Figma designs that were posted in Slack"
 * **Automate workflows**: "Create Gmail drafts inviting these 10 users to a feedback session about the new feature."
+* **React to external events**: An MCP server can also act as a [channel](/en/channels) that pushes messages into your session, so Claude reacts to Telegram messages, Discord chats, or webhook events while you're away.
 
 ## Popular MCP servers
 
@@ -328,6 +329,10 @@ claude mcp remove github
 
 Claude Code supports MCP `list_changed` notifications, allowing MCP servers to dynamically update their available tools, prompts, and resources without requiring you to disconnect and reconnect. When an MCP server sends a `list_changed` notification, Claude Code automatically refreshes the available capabilities from that server.
 
+### Push messages with channels
+
+An MCP server can also push messages directly into your session so Claude can react to external events like CI results, monitoring alerts, or chat messages. To enable this, your server declares the `claude/channel` capability and you opt it in with the `--channels` flag at startup. See [Channels](/en/channels) to use an officially supported channel, or [Channels reference](/en/channels-reference) to build your own.
+
 <Tip>
   Tips:
 
@@ -369,11 +374,13 @@ In `.mcp.json` at plugin root:
 
 ```json  theme={null}
 {
-  "database-tools": {
-    "command": "${CLAUDE_PLUGIN_ROOT}/servers/db-server",
-    "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"],
-    "env": {
-      "DB_URL": "${DB_URL}"
+  "mcpServers": {
+    "database-tools": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/servers/db-server",
+      "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"],
+      "env": {
+        "DB_URL": "${DB_URL}"
+      }
     }
   }
 }
@@ -395,8 +402,8 @@ Or inline in `plugin.json`:
 
 **Plugin MCP features**:
 
-* **Automatic lifecycle**: Servers start when plugin enables, but you must restart Claude Code to apply MCP server changes (enabling or disabling)
-* **Environment variables**: Use `${CLAUDE_PLUGIN_ROOT}` for plugin-relative paths
+* **Automatic lifecycle**: At session startup, servers for enabled plugins connect automatically. If you enable or disable a plugin during a session, run `/reload-plugins` to connect or disconnect its MCP servers
+* **Environment variables**: use `${CLAUDE_PLUGIN_ROOT}` for bundled plugin files and `${CLAUDE_PLUGIN_DATA}` for [persistent state](/en/plugins-reference#persistent-data-directory) that survives plugin updates
 * **User environment access**: Access to same environment variables as manually configured servers
 * **Multiple transport types**: Support stdio, SSE, and HTTP transports (transport support may vary by server)
 
@@ -490,6 +497,8 @@ Select your scope based on:
 ### Scope hierarchy and precedence
 
 MCP server configurations follow a clear precedence hierarchy. When servers with the same name exist at multiple scopes, the system resolves conflicts by prioritizing local-scoped servers first, followed by project-scoped servers, and finally user-scoped servers. This design ensures that personal configurations can override shared ones when needed.
+
+If a server is configured both locally and through a [claude.ai connector](#use-mcp-servers-from-claude-ai), the local configuration takes precedence and the connector entry is skipped.
 
 ### Environment variable expansion in `.mcp.json`
 
@@ -669,7 +678,7 @@ claude mcp add --transport http \
 
 ### Use pre-configured OAuth credentials
 
-Some MCP servers don't support automatic OAuth setup. If you see an error like "Incompatible auth server: does not support dynamic client registration," the server requires pre-configured credentials. Register an OAuth app through the server's developer portal first, then provide the credentials when adding the server.
+Some MCP servers don't support automatic OAuth setup via Dynamic Client Registration. If you see an error like "Incompatible auth server: does not support dynamic client registration," the server requires pre-configured credentials. Claude Code also supports servers that use a Client ID Metadata Document (CIMD) instead of Dynamic Client Registration, and discovers these automatically. If automatic discovery fails, register an OAuth app through the server's developer portal first, then provide the credentials when adding the server.
 
 <Steps>
   <Step title="Register an OAuth app with the server">
@@ -740,7 +749,7 @@ Some MCP servers don't support automatic OAuth setup. If you see an error like "
 
 ### Override OAuth metadata discovery
 
-If your MCP server returns errors on the standard OAuth metadata endpoint (`/.well-known/oauth-authorization-server`) but exposes a working OIDC endpoint, you can tell Claude Code to fetch OAuth metadata directly from a URL you specify, bypassing the standard discovery chain.
+If your MCP server's standard OAuth metadata endpoints return errors but the server exposes a working OIDC endpoint, you can point Claude Code at a specific metadata URL to bypass the default discovery chain. By default, Claude Code first checks RFC 9728 Protected Resource Metadata at `/.well-known/oauth-protected-resource`, then falls back to RFC 8414 authorization server metadata at `/.well-known/oauth-authorization-server`.
 
 Set `authServerMetadataUrl` in the `oauth` object of your server's config in `.mcp.json`:
 
@@ -759,6 +768,57 @@ Set `authServerMetadataUrl` in the `oauth` object of your server's config in `.m
 ```
 
 The URL must use `https://`. This option requires Claude Code v2.1.64 or later.
+
+### Use dynamic headers for custom authentication
+
+If your MCP server uses an authentication scheme other than OAuth (such as Kerberos, short-lived tokens, or an internal SSO), use `headersHelper` to generate request headers at connection time. Claude Code runs the command and merges its output into the connection headers.
+
+```json  theme={null}
+{
+  "mcpServers": {
+    "internal-api": {
+      "type": "http",
+      "url": "https://mcp.internal.example.com",
+      "headersHelper": "/opt/bin/get-mcp-auth-headers.sh"
+    }
+  }
+}
+```
+
+The command can also be inline:
+
+```json  theme={null}
+{
+  "mcpServers": {
+    "internal-api": {
+      "type": "http",
+      "url": "https://mcp.internal.example.com",
+      "headersHelper": "echo '{\"Authorization\": \"Bearer '\"$(get-token)\"'\"}'"
+    }
+  }
+}
+```
+
+**Requirements:**
+
+* The command must write a JSON object of string key-value pairs to stdout
+* The command runs in a shell with a 10-second timeout
+* Dynamic headers override any static `headers` with the same name
+
+The helper runs fresh on each connection (at session start and on reconnect). There is no caching, so your script is responsible for any token reuse.
+
+Claude Code sets these environment variables when executing the helper:
+
+| Variable                      | Value                      |
+| :---------------------------- | :------------------------- |
+| `CLAUDE_CODE_MCP_SERVER_NAME` | the name of the MCP server |
+| `CLAUDE_CODE_MCP_SERVER_URL`  | the URL of the MCP server  |
+
+Use these to write a single helper script that serves multiple MCP servers.
+
+<Note>
+  `headersHelper` executes arbitrary shell commands. When defined at project or local scope, it only runs after you accept the workspace trust dialog.
+</Note>
 
 ## Add MCP servers from JSON configuration
 
@@ -1000,16 +1060,13 @@ MCP servers can expose resources that you can reference using @ mentions, simila
 
 ## Scale with MCP Tool Search
 
-When you have many MCP servers configured, tool definitions can consume a significant portion of your context window. MCP Tool Search solves this by dynamically loading tools on-demand instead of preloading all of them.
+Tool search keeps MCP context usage low by deferring tool definitions until Claude needs them. Only tool names load at session start, so adding more MCP servers has minimal impact on your context window.
 
 ### How it works
 
-Claude Code automatically enables Tool Search when your MCP tool descriptions would consume more than 10% of the context window. You can [adjust this threshold](#configure-tool-search) or disable tool search entirely. When triggered:
+Tool search is enabled by default. MCP tools are deferred rather than loaded into context upfront, and Claude uses a search tool to discover relevant ones when a task needs them. Only the tools Claude actually uses enter context. From your perspective, MCP tools work exactly as before.
 
-1. MCP tools are deferred rather than loaded into context upfront
-2. Claude uses a search tool to discover relevant MCP tools when needed
-3. Only the tools Claude actually needs are loaded into context
-4. MCP tools continue to work exactly as before from your perspective
+If you prefer threshold-based loading, set `ENABLE_TOOL_SEARCH=auto` to load schemas upfront when they fit within 10% of the context window and defer only the overflow. See [Configure tool search](#configure-tool-search) for all options.
 
 ### For MCP server authors
 
@@ -1021,19 +1078,21 @@ Add clear, descriptive server instructions that explain:
 * When Claude should search for your tools
 * Key capabilities your server provides
 
+Claude Code truncates tool descriptions and server instructions at 2KB each. Keep them concise to avoid truncation, and put critical details near the start.
+
 ### Configure tool search
 
 Tool search is enabled by default: MCP tools are deferred and discovered on demand. When `ANTHROPIC_BASE_URL` points to a non-first-party host, tool search is disabled by default because most proxies do not forward `tool_reference` blocks. Set `ENABLE_TOOL_SEARCH` explicitly if your proxy does. This feature requires models that support `tool_reference` blocks: Sonnet 4 and later, or Opus 4 and later. Haiku models do not support tool search.
 
 Control tool search behavior with the `ENABLE_TOOL_SEARCH` environment variable:
 
-| Value      | Behavior                                                                           |
-| :--------- | :--------------------------------------------------------------------------------- |
-| (unset)    | Enabled by default. Disabled when `ANTHROPIC_BASE_URL` is a non-first-party host   |
-| `true`     | Always enabled, including for non-first-party `ANTHROPIC_BASE_URL`                 |
-| `auto`     | Activates when MCP tools exceed 10% of context                                     |
-| `auto:<N>` | Activates at custom threshold, where `<N>` is a percentage (e.g., `auto:5` for 5%) |
-| `false`    | Disabled, all MCP tools loaded upfront                                             |
+| Value      | Behavior                                                                                                                       |
+| :--------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| (unset)    | All MCP tools deferred and loaded on demand. Falls back to loading upfront when `ANTHROPIC_BASE_URL` is a non-first-party host |
+| `true`     | All MCP tools deferred, including for non-first-party `ANTHROPIC_BASE_URL`                                                     |
+| `auto`     | Threshold mode: tools load upfront if they fit within 10% of the context window, deferred otherwise                            |
+| `auto:<N>` | Threshold mode with a custom percentage, where `<N>` is 0-100 (e.g., `auto:5` for 5%)                                          |
+| `false`    | All MCP tools loaded upfront, no deferral                                                                                      |
 
 ```bash  theme={null}
 # Use a custom 5% threshold
@@ -1045,12 +1104,12 @@ ENABLE_TOOL_SEARCH=false claude
 
 Or set the value in your [settings.json `env` field](/en/settings#available-settings).
 
-You can also disable the MCPSearch tool specifically using the `disallowedTools` setting:
+You can also disable the `ToolSearch` tool specifically:
 
 ```json  theme={null}
 {
   "permissions": {
-    "deny": ["MCPSearch"]
+    "deny": ["ToolSearch"]
   }
 }
 ```
