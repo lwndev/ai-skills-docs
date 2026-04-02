@@ -223,6 +223,12 @@ export const LogoCarousel = () => {
     lightSrc: "/images/logos/snowflake/snowflake-logo-light.svg",
     darkSrc: "/images/logos/snowflake/snowflake-logo-dark.svg",
     instructionsUrl: "https://docs.snowflake.com/en/user-guide/cortex-code/extensibility#extensibility-skills"
+  }, {
+    name: "Kiro",
+    url: "https://kiro.dev/",
+    lightSrc: "/images/logos/kiro/kiro-logo-light.svg",
+    darkSrc: "/images/logos/kiro/kiro-logo-dark.svg",
+    instructionsUrl: "https://kiro.dev/docs/skills/"
   }];
   const [shuffled, setShuffled] = useState(logos);
   useEffect(() => {
@@ -252,11 +258,11 @@ export const LogoCarousel = () => {
               <img className="block dark:hidden object-contain" style={{
     width: logo.width || '150px',
     maxWidth: '100%'
-  }} src={logo.lightSrc} alt={logo.name} />
+  }} src={logo.lightSrc} alt={logo.name} noZoom />
               <img className="hidden dark:block object-contain" style={{
     width: logo.width || '150px',
     maxWidth: '100%'
-  }} src={logo.darkSrc} alt={logo.name} />
+  }} src={logo.darkSrc} alt={logo.name} noZoom />
             </a>)}
         </div>
       </div>
@@ -271,11 +277,11 @@ export const LogoCarousel = () => {
               <img className="block dark:hidden object-contain" style={{
     width: logo.width || '150px',
     maxWidth: '100%'
-  }} src={logo.lightSrc} alt={logo.name} />
+  }} src={logo.lightSrc} alt={logo.name} noZoom />
               <img className="hidden dark:block object-contain" style={{
     width: logo.width || '150px',
     maxWidth: '100%'
-  }} src={logo.darkSrc} alt={logo.name} />
+  }} src={logo.darkSrc} alt={logo.name} noZoom />
             </a>)}
         </div>
       </div>
@@ -311,7 +317,7 @@ Agent Skills are supported by leading AI development tools.
 
 The Agent Skills format was originally developed by [Anthropic](https://www.anthropic.com/), released as an open standard, and has been adopted by a growing number of agent products. The standard is open to contributions from the broader ecosystem.
 
-[View on GitHub](https://github.com/agentskills/agentskills)
+Come join the discussion on [GitHub](https://github.com/agentskills/agentskills) or [Discord](https://discord.gg/MKPE9g8aUy)!
 
 ## Get started
 
