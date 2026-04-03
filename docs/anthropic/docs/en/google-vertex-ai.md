@@ -71,19 +71,18 @@ export CLAUDE_CODE_USE_VERTEX=1
 export CLOUD_ML_REGION=global
 export ANTHROPIC_VERTEX_PROJECT_ID=YOUR-PROJECT-ID
 
+# Optional: Override the Vertex endpoint URL for custom endpoints or gateways
+# export ANTHROPIC_VERTEX_BASE_URL=https://aiplatform.googleapis.com
+
 # Optional: Disable prompt caching if needed
 export DISABLE_PROMPT_CACHING=1
 
-# When CLOUD_ML_REGION=global, override region for unsupported models
-export VERTEX_REGION_CLAUDE_3_5_HAIKU=us-east5
-
-# Optional: Override regions for other specific models
-export VERTEX_REGION_CLAUDE_3_5_SONNET=us-east5
-export VERTEX_REGION_CLAUDE_3_7_SONNET=us-east5
-export VERTEX_REGION_CLAUDE_4_0_OPUS=europe-west1
-export VERTEX_REGION_CLAUDE_4_0_SONNET=us-east5
-export VERTEX_REGION_CLAUDE_4_1_OPUS=europe-west1
+# When CLOUD_ML_REGION=global, override region for models that don't support global endpoints
+export VERTEX_REGION_CLAUDE_HAIKU_4_5=us-east5
+export VERTEX_REGION_CLAUDE_4_6_SONNET=europe-west1
 ```
+
+Most model versions have a corresponding `VERTEX_REGION_CLAUDE_*` variable. See the [Environment variables reference](/en/env-vars) for the full list. Check [Vertex Model Garden](https://console.cloud.google.com/vertex-ai/model-garden) to determine which models support global endpoints versus regional only.
 
 [Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) is automatically supported when you specify the `cache_control` ephemeral flag. To disable it, set `DISABLE_PROMPT_CACHING=1`. For heightened rate limits, contact Google Cloud support. When using Vertex AI, the `/login` and `/logout` commands are disabled since authentication is handled through Google Cloud credentials.
 
@@ -105,16 +104,16 @@ For current and legacy model IDs, see [Models overview](https://platform.claude.
 
 Claude Code uses these default models when no pinning variables are set:
 
-| Model type       | Default value               |
-| :--------------- | :-------------------------- |
-| Primary model    | `claude-sonnet-4-6`         |
-| Small/fast model | `claude-haiku-4-5@20251001` |
+| Model type       | Default value                |
+| :--------------- | :--------------------------- |
+| Primary model    | `claude-sonnet-4-5@20250929` |
+| Small/fast model | `claude-haiku-4-5@20251001`  |
 
 To customize models further:
 
 ```bash  theme={null}
 export ANTHROPIC_MODEL='claude-opus-4-6'
-export ANTHROPIC_SMALL_FAST_MODEL='claude-haiku-4-5@20251001'
+export ANTHROPIC_DEFAULT_HAIKU_MODEL='claude-haiku-4-5@20251001'
 ```
 
 ## IAM configuration
@@ -150,7 +149,7 @@ If you encounter "model not found" 404 errors:
 * Confirm model is Enabled in [Model Garden](https://console.cloud.google.com/vertex-ai/model-garden)
 * Verify you have access to the specified region
 * If using `CLOUD_ML_REGION=global`, check that your models support global endpoints in [Model Garden](https://console.cloud.google.com/vertex-ai/model-garden) under "Supported features". For models that don't support global endpoints, either:
-  * Specify a supported model via `ANTHROPIC_MODEL` or `ANTHROPIC_SMALL_FAST_MODEL`, or
+  * Specify a supported model via `ANTHROPIC_MODEL` or `ANTHROPIC_DEFAULT_HAIKU_MODEL`, or
   * Set a regional endpoint using `VERTEX_REGION_<MODEL_NAME>` environment variables
 
 If you encounter 429 errors:

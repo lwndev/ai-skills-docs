@@ -9,7 +9,7 @@
 ## Troubleshoot installation issues
 
 <Tip>
-  If you'd rather skip the terminal entirely, the [Claude Code Desktop app](/en/desktop-quickstart) lets you install and use Claude Code through a graphical interface. Download it for [macOS](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect?utm_source=claude_code\&utm_medium=docs) or [Windows](https://claude.ai/api/desktop/win32/x64/exe/latest/redirect?utm_source=claude_code\&utm_medium=docs) and start coding without any command-line setup.
+  If you'd rather skip the terminal entirely, the [Claude Code Desktop app](/en/desktop-quickstart) lets you install and use Claude Code through a graphical interface. Download it for [macOS](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect?utm_source=claude_code\&utm_medium=docs) or [Windows](https://claude.com/download?utm_source=claude_code\&utm_medium=docs) and start coding without any command-line setup.
 </Tip>
 
 Find the error message or symptom you're seeing:
@@ -575,7 +575,7 @@ export PATH="$HOME/.nvm/versions/node/$(node -v)/bin:$PATH"
 
 ### WSL2 sandbox setup
 
-[Sandboxing](/en/sandboxing) is supported on WSL2 but requires installing additional packages. If you see an error like "Sandbox requires socat and bubblewrap" when running `/sandbox`, install the dependencies:
+[Sandboxing](/en/sandboxing) is supported on WSL2 but requires installing additional packages. If you see an error about missing `bubblewrap` or `socat` when running `/sandbox`, install the dependencies:
 
 <Tabs>
   <Tab title="Ubuntu/Debian">
@@ -639,6 +639,21 @@ If you see `API Error: 403 {"error":{"type":"forbidden","message":"Request not a
 * **Claude Pro/Max users**: verify your subscription is active at [claude.ai/settings](https://claude.ai/settings)
 * **Console users**: confirm your account has the "Claude Code" or "Developer" role assigned by your admin
 * **Behind a proxy**: corporate proxies can interfere with API requests. See [network configuration](/en/network-config) for proxy setup.
+
+### "This organization has been disabled" with an active subscription
+
+If you see `API Error: 400 ... "This organization has been disabled"` despite having an active Claude subscription, an `ANTHROPIC_API_KEY` environment variable is overriding your subscription. This commonly happens when an old API key from a previous employer or project is still set in your shell profile.
+
+When `ANTHROPIC_API_KEY` is present and you have approved it, Claude Code uses that key instead of your subscription's OAuth credentials. In non-interactive mode (`-p`), the key is always used when present. See [authentication precedence](/en/authentication#authentication-precedence) for the full resolution order.
+
+To use your subscription instead, unset the environment variable and remove it from your shell profile:
+
+```bash  theme={null}
+unset ANTHROPIC_API_KEY
+claude
+```
+
+Check `~/.zshrc`, `~/.bashrc`, or `~/.profile` for `export ANTHROPIC_API_KEY=...` lines and remove them to make the change permanent. Run `/status` inside Claude Code to confirm which authentication method is active.
 
 ### OAuth login fails in WSL2
 
@@ -833,7 +848,7 @@ If you notice code blocks like this in generated markdown:
 function example() {
   return "hello";
 }
-```text
+```
 ````
 
 Instead of properly tagged blocks like:
@@ -843,7 +858,7 @@ Instead of properly tagged blocks like:
 function example() {
   return "hello";
 }
-```text
+```
 ````
 
 **Solutions:**
@@ -878,7 +893,7 @@ To minimize formatting issues:
 
 If you're experiencing issues not covered here:
 
-1. Use the `/bug` command within Claude Code to report problems directly to Anthropic
+1. Use the `/feedback` command within Claude Code to report problems directly to Anthropic
 2. Check the [GitHub repository](https://github.com/anthropics/claude-code) for known issues
 3. Run `/doctor` to diagnose issues. It checks:
    * Installation type, version, and search functionality

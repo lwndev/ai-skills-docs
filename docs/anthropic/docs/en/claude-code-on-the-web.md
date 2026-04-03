@@ -35,12 +35,28 @@ Claude Code on the web is available in research preview to:
 
 ## Getting started
 
+Set up Claude Code on the web from the browser or from your terminal.
+
+### From the browser
+
 1. Visit [claude.ai/code](https://claude.ai/code)
 2. Connect your GitHub account
-3. Install the Claude GitHub app in your repositories
+3. Install the Claude GitHub App in your repositories
 4. Select your default environment
 5. Submit your coding task
 6. Review changes in diff view, iterate with comments, then create a pull request
+
+### From the terminal
+
+Run `/web-setup` inside Claude Code to connect GitHub using your local `gh` CLI credentials. The command syncs your `gh auth token` to Claude Code on the web, creates a default cloud environment, and opens claude.ai/code in your browser when it finishes.
+
+This path requires the `gh` CLI to be installed and authenticated with `gh auth login`. If `gh` is not available, `/web-setup` opens claude.ai/code so you can connect GitHub from the browser instead.
+
+Your `gh` credentials give Claude access to clone and push, so you can skip the GitHub App for basic sessions. Install the App later if you want [Auto-fix](#auto-fix-pull-requests), which uses the App to receive PR webhooks.
+
+<Note>
+  Team and Enterprise admins can disable terminal setup with the Quick web setup toggle at [claude.ai/admin-settings/claude-code](https://claude.ai/admin-settings/claude-code).
+</Note>
 
 ## How it works
 
@@ -66,6 +82,34 @@ From the diff view, you can:
 * Continue iterating with Claude based on what you see
 
 This lets you refine changes through multiple rounds of feedback without creating draft PRs or switching to GitHub.
+
+## Auto-fix pull requests
+
+Claude can watch a pull request and automatically respond to CI failures and review comments. Claude subscribes to GitHub activity on the PR, and when a check fails or a reviewer leaves a comment, Claude investigates and pushes a fix if one is clear.
+
+<Note>
+  Auto-fix requires the Claude GitHub App to be installed on your repository. If you haven't already, install it from the [GitHub App page](https://github.com/apps/claude) or when prompted during [setup](#getting-started).
+</Note>
+
+There are a few ways to turn on auto-fix depending on where the PR came from and what device you're using:
+
+* **PRs created in Claude Code on the web**: open the CI status bar and select **Auto-fix**
+* **From the mobile app**: tell Claude to auto-fix the PR, for example "watch this PR and fix any CI failures or review comments"
+* **Any existing PR**: paste the PR URL into a session and tell Claude to auto-fix it
+
+### How Claude responds to PR activity
+
+When auto-fix is active, Claude receives GitHub events for the PR including new review comments and CI check failures. For each event, Claude investigates and decides how to proceed:
+
+* **Clear fixes**: if Claude is confident in a fix and it doesn't conflict with earlier instructions, Claude makes the change, pushes it, and explains what was done in the session
+* **Ambiguous requests**: if a reviewer's comment could be interpreted multiple ways or involves something architecturally significant, Claude asks you before acting
+* **Duplicate or no-action events**: if an event is a duplicate or requires no change, Claude notes it in the session and moves on
+
+Claude may reply to review comment threads on GitHub as part of resolving them. These replies are posted using your GitHub account, so they appear under your username, but each reply is labeled as coming from Claude Code so reviewers know it was written by the agent and not by you directly.
+
+<Warning>
+  If your repository uses comment-triggered automation such as Atlantis, Terraform Cloud, or custom GitHub Actions that run on `issue_comment` events, be aware that Claude can reply on your behalf, which can trigger those workflows. Review your repository's automation before enabling auto-fix, and consider disabling auto-fix for repositories where a PR comment can deploy infrastructure or run privileged operations.
+</Warning>
 
 ## Moving tasks between web and terminal
 
@@ -140,9 +184,9 @@ types below. After that, share the session link as-is. Recipients who open your
 shared session will see the latest state of the session upon load, but the
 recipient's page will not update in real time.
 
-#### Sharing from an Enterprise or Teams account
+#### Sharing from an Enterprise or Team account
 
-For Enterprise and Teams accounts, the two visibility options are **Private**
+For Enterprise and Team accounts, the two visibility options are **Private**
 and **Team**. Team visibility makes the session visible to other members of your
 Claude.ai organization. Repository access verification is enabled by default,
 based on the GitHub account connected to the recipient's account. Your account's
@@ -161,6 +205,10 @@ verification is not enabled by default.
 
 Enable repository access verification and/or withhold your name from your shared
 sessions by going to Settings > Claude Code > Sharing settings.
+
+## Schedule recurring tasks
+
+Run Claude on a recurring schedule to automate work like daily PR reviews, dependency audits, and CI failure analysis. See [Schedule tasks on the web](/en/web-scheduled-tasks) for the full guide.
 
 ## Managing sessions
 
@@ -657,7 +705,7 @@ Claude Code on the web shares rate limits with all other Claude and Claude Code 
 ## Limitations
 
 * **Repository authentication**: You can only move sessions from web to local when you are authenticated to the same account
-* **Platform restrictions**: Claude Code on the web only works with code hosted in GitHub. GitLab and other non-GitHub repositories cannot be used with cloud sessions
+* **Platform restrictions**: Claude Code on the web only works with code hosted in GitHub. Self-hosted [GitHub Enterprise Server](/en/github-enterprise-server) instances are supported for Team and Enterprise plans. GitLab and other non-GitHub repositories cannot be used with cloud sessions
 
 ## Best practices
 
