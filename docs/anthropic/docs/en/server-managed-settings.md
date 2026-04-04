@@ -41,9 +41,9 @@ If your devices are enrolled in an MDM or endpoint management solution, endpoint
   </Step>
 
   <Step title="Define your settings">
-    Add your configuration as JSON. All [settings available in `settings.json`](/en/settings#available-settings) are supported, including [managed-only settings](/en/permissions#managed-only-settings) like `disableBypassPermissionsMode`.
+    Add your configuration as JSON. All [settings available in `settings.json`](/en/settings#available-settings) are supported, including [hooks](/en/hooks), [environment variables](/en/env-vars), and [managed-only settings](/en/permissions#managed-only-settings) like `allowManagedPermissionRulesOnly`.
 
-    This example enforces a permission deny list and prevents users from bypassing permissions:
+    This example enforces a permission deny list, prevents users from bypassing permissions, and restricts permission rules to those defined in managed settings:
 
     ```json  theme={null}
     {
@@ -53,11 +53,47 @@ If your devices are enrolled in an MDM or endpoint management solution, endpoint
           "Read(./.env)",
           "Read(./.env.*)",
           "Read(./secrets/**)"
-        ]
+        ],
+        "disableBypassPermissionsMode": "disable"
       },
-      "disableBypassPermissionsMode": "disable"
+      "allowManagedPermissionRulesOnly": true
     }
     ```
+
+    Hooks use the same format as in `settings.json`.
+
+    This example runs an audit script after every file edit across the organization:
+
+    ```json  theme={null}
+    {
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write",
+            "hooks": [
+              { "type": "command", "command": "/usr/local/bin/audit-edit.sh" }
+            ]
+          }
+        ]
+      }
+    }
+    ```
+
+    To configure the [auto mode](/en/permission-modes#eliminate-prompts-with-auto-mode) classifier so it knows which repos, buckets, and domains your organization trusts:
+
+    ```json  theme={null}
+    {
+      "autoMode": {
+        "environment": [
+          "Source control: github.example.com/acme-corp and all repos under it",
+          "Trusted cloud buckets: s3://acme-build-artifacts, gs://acme-ml-datasets",
+          "Trusted internal domains: *.corp.example.com"
+        ]
+      }
+    }
+    ```
+
+    Because hooks execute shell commands, users see a [security approval dialog](#security-approval-dialogs) before they're applied. See [Configure the auto mode classifier](/en/permissions#configure-the-auto-mode-classifier) for how the `autoMode` entries affect what the classifier blocks and important warnings about the `allow` and `soft_deny` fields.
   </Step>
 
   <Step title="Save and deploy">
@@ -78,6 +114,10 @@ The following roles can manage server-managed settings:
 
 Restrict access to trusted personnel, as settings changes apply to all users in the organization.
 
+### Managed-only settings
+
+Most [settings keys](/en/settings#available-settings) work in any scope. A handful of keys are only read from managed settings and have no effect when placed in user or project settings files. See [managed-only settings](/en/permissions#managed-only-settings) for the full list. Any setting not on that list can still be placed in managed settings and takes the highest precedence.
+
 ### Current limitations
 
 Server-managed settings have the following limitations during the beta period:
@@ -89,7 +129,11 @@ Server-managed settings have the following limitations during the beta period:
 
 ### Settings precedence
 
-Server-managed settings and [endpoint-managed settings](/en/settings#settings-files) both occupy the highest tier in the Claude Code [settings hierarchy](/en/settings#settings-precedence). No other settings level can override them, including command line arguments. When both are present, server-managed settings take precedence and endpoint-managed settings are not used.
+Server-managed settings and [endpoint-managed settings](/en/settings#settings-files) both occupy the highest tier in the Claude Code [settings hierarchy](/en/settings#settings-precedence). No other settings level can override them, including command line arguments.
+
+Within the managed tier, the first source that delivers a non-empty configuration wins. Server-managed settings are checked first, then endpoint-managed settings. Sources do not merge: if server-managed settings deliver any keys at all, endpoint-managed settings are ignored entirely. If server-managed settings deliver nothing, endpoint-managed settings apply.
+
+If you clear your server-managed configuration in the admin console with the intent of falling back to an endpoint-managed plist or registry policy, be aware that [cached settings](#fetch-and-caching-behavior) persist on client machines until the next successful fetch. Run `/status` to see which managed source is active.
 
 ### Fetch and caching behavior
 

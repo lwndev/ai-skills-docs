@@ -51,7 +51,7 @@ Each binding block specifies a **context** where the bindings apply:
 | `Global`          | Applies everywhere in the app                    |
 | `Chat`            | Main chat input area                             |
 | `Autocomplete`    | Autocomplete menu is open                        |
-| `Settings`        | Settings menu (escape-only dismiss)              |
+| `Settings`        | Settings menu                                    |
 | `Confirmation`    | Permission and confirmation dialogs              |
 | `Tabs`            | Tab navigation components                        |
 | `Help`            | Help menu is visible                             |
@@ -59,7 +59,7 @@ Each binding block specifies a **context** where the bindings apply:
 | `HistorySearch`   | History search mode (Ctrl+R)                     |
 | `Task`            | Background task is running                       |
 | `ThemePicker`     | Theme picker dialog                              |
-| `Attachments`     | Image/attachment bar navigation                  |
+| `Attachments`     | Image attachment navigation in select dialogs    |
 | `Footer`          | Footer indicator navigation (tasks, teams, diff) |
 | `MessageSelector` | Rewind and summarize dialog message selection    |
 | `DiffDialog`      | Diff viewer navigation                           |
@@ -79,6 +79,7 @@ Actions available in the `Global` context:
 | :--------------------- | :------ | :-------------------------- |
 | `app:interrupt`        | Ctrl+C  | Cancel current operation    |
 | `app:exit`             | Ctrl+D  | Exit Claude Code            |
+| `app:redraw`           | Ctrl+L  | Redraw the screen           |
 | `app:toggleTodos`      | Ctrl+T  | Toggle task list visibility |
 | `app:toggleTranscript` | Ctrl+O  | Toggle verbose transcript   |
 
@@ -96,17 +97,20 @@ Actions for navigating command history:
 
 Actions available in the `Chat` context:
 
-| Action                | Default                   | Description              |
-| :-------------------- | :------------------------ | :----------------------- |
-| `chat:cancel`         | Escape                    | Cancel current input     |
-| `chat:cycleMode`      | Shift+Tab\*               | Cycle permission modes   |
-| `chat:modelPicker`    | Cmd+P / Meta+P            | Open model picker        |
-| `chat:thinkingToggle` | Cmd+T / Meta+T            | Toggle extended thinking |
-| `chat:submit`         | Enter                     | Submit message           |
-| `chat:undo`           | Ctrl+\_                   | Undo last action         |
-| `chat:externalEditor` | Ctrl+G                    | Open in external editor  |
-| `chat:stash`          | Ctrl+S                    | Stash current prompt     |
-| `chat:imagePaste`     | Ctrl+V (Alt+V on Windows) | Paste image              |
+| Action                | Default                   | Description                         |
+| :-------------------- | :------------------------ | :---------------------------------- |
+| `chat:cancel`         | Escape                    | Cancel current input                |
+| `chat:killAgents`     | Ctrl+X Ctrl+K             | Kill all background agents          |
+| `chat:cycleMode`      | Shift+Tab\*               | Cycle permission modes              |
+| `chat:modelPicker`    | Cmd+P / Meta+P            | Open model picker                   |
+| `chat:fastMode`       | Meta+O                    | Toggle fast mode                    |
+| `chat:thinkingToggle` | Cmd+T / Meta+T            | Toggle extended thinking            |
+| `chat:submit`         | Enter                     | Submit message                      |
+| `chat:newline`        | (unbound)                 | Insert a newline without submitting |
+| `chat:undo`           | Ctrl+\_, Ctrl+Shift+-     | Undo last action                    |
+| `chat:externalEditor` | Ctrl+G, Ctrl+X Ctrl+E     | Open in external editor             |
+| `chat:stash`          | Ctrl+S                    | Stash current prompt                |
+| `chat:imagePaste`     | Ctrl+V (Alt+V on Windows) | Paste image                         |
 
 \*On Windows without VT mode (Node \<24.2.0/\<22.17.0, Bun \<1.2.23), defaults to Meta+M.
 
@@ -133,6 +137,7 @@ Actions available in the `Confirmation` context:
 | `confirm:next`              | Down      | Next option                   |
 | `confirm:nextField`         | Tab       | Next field                    |
 | `confirm:previousField`     | (unbound) | Previous field                |
+| `confirm:toggle`            | Space     | Toggle selection              |
 | `confirm:cycleMode`         | Shift+Tab | Cycle permission modes        |
 | `confirm:toggleExplanation` | Ctrl+E    | Toggle permission explanation |
 
@@ -148,10 +153,10 @@ Actions available in the `Confirmation` context for permission dialogs:
 
 Actions available in the `Transcript` context:
 
-| Action                     | Default        | Description             |
-| :------------------------- | :------------- | :---------------------- |
-| `transcript:toggleShowAll` | Ctrl+E         | Toggle show all content |
-| `transcript:exit`          | Ctrl+C, Escape | Exit transcript view    |
+| Action                     | Default           | Description             |
+| :------------------------- | :---------------- | :---------------------- |
+| `transcript:toggleShowAll` | Ctrl+E            | Toggle show all content |
+| `transcript:exit`          | q, Ctrl+C, Escape | Exit transcript view    |
 
 ### History search actions
 
@@ -206,18 +211,20 @@ Actions available in the `Attachments` context:
 | `attachments:next`     | Right             | Next attachment            |
 | `attachments:previous` | Left              | Previous attachment        |
 | `attachments:remove`   | Backspace, Delete | Remove selected attachment |
-| `attachments:exit`     | Down, Escape      | Exit attachment bar        |
+| `attachments:exit`     | Down, Escape      | Exit attachment navigation |
 
 ### Footer actions
 
 Actions available in the `Footer` context:
 
-| Action                  | Default | Description               |
-| :---------------------- | :------ | :------------------------ |
-| `footer:next`           | Right   | Next footer item          |
-| `footer:previous`       | Left    | Previous footer item      |
-| `footer:openSelected`   | Enter   | Open selected footer item |
-| `footer:clearSelection` | Escape  | Clear footer selection    |
+| Action                  | Default | Description                              |
+| :---------------------- | :------ | :--------------------------------------- |
+| `footer:next`           | Right   | Next footer item                         |
+| `footer:previous`       | Left    | Previous footer item                     |
+| `footer:up`             | Up      | Navigate up in footer (deselects at top) |
+| `footer:down`           | Down    | Navigate down in footer                  |
+| `footer:openSelected`   | Enter   | Open selected footer item                |
+| `footer:clearSelection` | Escape  | Clear footer selection                   |
 
 ### Message selector actions
 
@@ -278,10 +285,19 @@ Actions available in the `Plugin` context:
 
 Actions available in the `Settings` context:
 
-| Action            | Default | Description                         |
-| :---------------- | :------ | :---------------------------------- |
-| `settings:search` | /       | Enter search mode                   |
-| `settings:retry`  | R       | Retry loading usage data (on error) |
+| Action            | Default | Description                                                                 |
+| :---------------- | :------ | :-------------------------------------------------------------------------- |
+| `settings:search` | /       | Enter search mode                                                           |
+| `settings:retry`  | R       | Retry loading usage data (on error)                                         |
+| `settings:close`  | Enter   | Save changes and close the config panel. Escape discards changes and closes |
+
+### Voice actions
+
+Actions available in the `Chat` context when [voice dictation](/en/voice-dictation) is enabled:
+
+| Action             | Default | Description              |
+| :----------------- | :------ | :----------------------- |
+| `voice:pushToTalk` | Space   | Hold to dictate a prompt |
 
 ## Keystroke syntax
 
@@ -307,7 +323,7 @@ ctrl+shift+c    Multiple modifiers
 
 A standalone uppercase letter implies Shift. For example, `K` is equivalent to `shift+k`. This is useful for vim-style bindings where uppercase and lowercase keys have different meanings.
 
-Uppercase letters with modifiers (e.g., `ctrl+K`) are treated as stylistic and do **not** imply Shift — `ctrl+K` is the same as `ctrl+k`.
+Uppercase letters with modifiers (e.g., `ctrl+K`) are treated as stylistic and do **not** imply Shift: `ctrl+K` is the same as `ctrl+k`.
 
 ### Chords
 
@@ -343,14 +359,34 @@ Set an action to `null` to unbind a default shortcut:
 }
 ```
 
+This also works for chord bindings. Unbinding every chord that shares a prefix frees that prefix for use as a single-key binding:
+
+```json  theme={null}
+{
+  "bindings": [
+    {
+      "context": "Chat",
+      "bindings": {
+        "ctrl+x ctrl+k": null,
+        "ctrl+x ctrl+e": null,
+        "ctrl+x": "chat:newline"
+      }
+    }
+  ]
+}
+```
+
+If you unbind some but not all chords on a prefix, pressing the prefix still enters chord-wait mode for the remaining bindings.
+
 ## Reserved shortcuts
 
 These shortcuts cannot be rebound:
 
-| Shortcut | Reason                     |
-| :------- | :------------------------- |
-| Ctrl+C   | Hardcoded interrupt/cancel |
-| Ctrl+D   | Hardcoded exit             |
+| Shortcut | Reason                                         |
+| :------- | :--------------------------------------------- |
+| Ctrl+C   | Hardcoded interrupt/cancel                     |
+| Ctrl+D   | Hardcoded exit                                 |
+| Ctrl+M   | Identical to Enter in terminals (both send CR) |
 
 ## Terminal conflicts
 
