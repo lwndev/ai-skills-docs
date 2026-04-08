@@ -9,7 +9,7 @@
 ## Troubleshoot installation issues
 
 <Tip>
-  If you'd rather skip the terminal entirely, the [Claude Code Desktop app](/en/desktop-quickstart) lets you install and use Claude Code through a graphical interface. Download it for [macOS](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect?utm_source=claude_code\&utm_medium=docs) or [Windows](https://claude.ai/api/desktop/win32/x64/exe/latest/redirect?utm_source=claude_code\&utm_medium=docs) and start coding without any command-line setup.
+  If you'd rather skip the terminal entirely, the [Claude Code Desktop app](/en/desktop-quickstart) lets you install and use Claude Code through a graphical interface. Download it for [macOS](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect?utm_source=claude_code\&utm_medium=docs) or [Windows](https://claude.com/download?utm_source=claude_code\&utm_medium=docs) and start coding without any command-line setup.
 </Tip>
 
 Find the error message or symptom you're seeing:
@@ -575,7 +575,7 @@ export PATH="$HOME/.nvm/versions/node/$(node -v)/bin:$PATH"
 
 ### WSL2 sandbox setup
 
-[Sandboxing](/en/sandboxing) is supported on WSL2 but requires installing additional packages. If you see an error like "Sandbox requires socat and bubblewrap" when running `/sandbox`, install the dependencies:
+[Sandboxing](/en/sandboxing) is supported on WSL2 but requires installing additional packages. If you see an error about missing `bubblewrap` or `socat` when running `/sandbox`, install the dependencies:
 
 <Tabs>
   <Tab title="Ubuntu/Debian">
@@ -592,6 +592,8 @@ export PATH="$HOME/.nvm/versions/node/$(node -v)/bin:$PATH"
 </Tabs>
 
 WSL1 does not support sandboxing. If you see "Sandboxing requires WSL2", you need to upgrade to WSL2 or run Claude Code without sandboxing.
+
+Sandboxed commands cannot launch Windows binaries such as `cmd.exe`, `powershell.exe`, or executables under `/mnt/c/`. WSL hands these off to the Windows host over a Unix socket, which the sandbox blocks. If a command needs to invoke a Windows binary, add it to [`excludedCommands`](/en/settings#sandbox-settings) so it runs outside the sandbox.
 
 ### Permission errors during installation
 
@@ -640,6 +642,43 @@ If you see `API Error: 403 {"error":{"type":"forbidden","message":"Request not a
 * **Console users**: confirm your account has the "Claude Code" or "Developer" role assigned by your admin
 * **Behind a proxy**: corporate proxies can interfere with API requests. See [network configuration](/en/network-config) for proxy setup.
 
+### Model not found or not accessible
+
+If you see `There's an issue with the selected model (...). It may not exist or you may not have access to it`, the API rejected the configured model name.
+
+Common causes:
+
+* A typo in the model name passed to `--model`
+* A stale or deprecated model ID saved in your settings
+* An API key without access to that model on your current usage tier
+
+Check where the model is set, in [priority order](/en/model-config#setting-your-model):
+
+* The `--model` flag
+* The `ANTHROPIC_MODEL` environment variable
+* The `model` field in `.claude/settings.local.json`
+* The `model` field in your project's `.claude/settings.json`
+* The `model` field in `~/.claude/settings.json`
+
+To clear a stale value, remove the `model` field from your settings or unset `ANTHROPIC_MODEL`, and Claude Code will fall back to the default model for your account.
+
+To browse models available to your account, start `claude` interactively and run `/model` to open the picker. For Vertex AI deployments, see [the Vertex AI troubleshooting section](/en/google-vertex-ai#troubleshooting).
+
+### "This organization has been disabled" with an active subscription
+
+If you see `API Error: 400 ... "This organization has been disabled"` despite having an active Claude subscription, an `ANTHROPIC_API_KEY` environment variable is overriding your subscription. This commonly happens when an old API key from a previous employer or project is still set in your shell profile.
+
+When `ANTHROPIC_API_KEY` is present and you have approved it, Claude Code uses that key instead of your subscription's OAuth credentials. In non-interactive mode (`-p`), the key is always used when present. See [authentication precedence](/en/authentication#authentication-precedence) for the full resolution order.
+
+To use your subscription instead, unset the environment variable and remove it from your shell profile:
+
+```bash  theme={null}
+unset ANTHROPIC_API_KEY
+claude
+```
+
+Check `~/.zshrc`, `~/.bashrc`, or `~/.profile` for `export ANTHROPIC_API_KEY=...` lines and remove them to make the change permanent. Run `/status` inside Claude Code to confirm which authentication method is active.
+
 ### OAuth login fails in WSL2
 
 Browser-based login in WSL2 may fail if WSL can't open your Windows browser. Set the `BROWSER` environment variable:
@@ -656,6 +695,8 @@ Or copy the URL manually: when the login prompt appears, press `c` to copy the O
 If Claude Code prompts you to log in again after a session, your OAuth token may have expired.
 
 Run `/login` to re-authenticate. If this happens frequently, check that your system clock is accurate, as token validation depends on correct timestamps.
+
+On macOS, login can also fail when the Keychain is locked or its password is out of sync with your account password, which prevents Claude Code from saving credentials. Run `claude doctor` to check Keychain access. To unlock the Keychain manually, run `security unlock-keychain ~/Library/Keychains/login.keychain-db`. If unlocking doesn't help, open Keychain Access, select the `login` keychain, and choose Edit > Change Password for Keychain "login" to resync it with your account password.
 
 ## Configuration file locations
 
@@ -833,7 +874,7 @@ If you notice code blocks like this in generated markdown:
 function example() {
   return "hello";
 }
-```text
+```
 ````
 
 Instead of properly tagged blocks like:
@@ -843,7 +884,7 @@ Instead of properly tagged blocks like:
 function example() {
   return "hello";
 }
-```text
+```
 ````
 
 **Solutions:**
@@ -878,7 +919,7 @@ To minimize formatting issues:
 
 If you're experiencing issues not covered here:
 
-1. Use the `/bug` command within Claude Code to report problems directly to Anthropic
+1. Use the `/feedback` command within Claude Code to report problems directly to Anthropic
 2. Check the [GitHub repository](https://github.com/anthropics/claude-code) for known issues
 3. Run `/doctor` to diagnose issues. It checks:
    * Installation type, version, and search functionality
