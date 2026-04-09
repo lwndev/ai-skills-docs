@@ -69,7 +69,7 @@ When you run `claude` in a directory, Claude Code gains access to:
 * **Your terminal.** Any command you could run: build tools, git, package managers, system utilities, scripts. If you can do it from the command line, Claude can too.
 * **Your git state.** Current branch, uncommitted changes, and recent commit history.
 * **Your [CLAUDE.md](/en/memory).** A markdown file where you store project-specific instructions, conventions, and context that Claude should know every session.
-* **[Auto memory](/en/memory#auto-memory).** Learnings Claude saves automatically as you work, like project patterns and your preferences. The first 200 lines of MEMORY.md are loaded at the start of each session.
+* **[Auto memory](/en/memory#auto-memory).** Learnings Claude saves automatically as you work, like project patterns and your preferences. The first 200 lines or 25KB of MEMORY.md, whichever comes first, load at the start of each session.
 * **Extensions you configure.** [MCP servers](/en/mcp) for external services, [skills](/en/skills) for workflows, [subagents](/en/sub-agents) for delegated work, and [Claude in Chrome](/en/chrome) for browser interaction.
 
 Because Claude sees your whole project, it can work across it. When you ask Claude to "fix the authentication bug," it searches for relevant files, reads multiple files to understand context, makes coordinated edits across them, runs tests to verify the fix, and commits the changes if you ask. This is different from inline code assistants that only see the current file.
@@ -90,11 +90,11 @@ Claude Code runs in three environments, each with different tradeoffs for where 
 
 ### Interfaces
 
-You can access Claude Code through the terminal, the [desktop app](/en/desktop), [IDE extensions](/en/ide-integrations), [claude.ai/code](https://claude.ai/code), [Remote Control](/en/remote-control), [Slack](/en/slack), and [CI/CD pipelines](/en/github-actions). The interface determines how you see and interact with Claude, but the underlying agentic loop is identical. See [Use Claude Code everywhere](/en/overview#use-claude-code-everywhere) for the full list.
+You can access Claude Code through the terminal, the [desktop app](/en/desktop), [IDE extensions](/en/vs-code), [claude.ai/code](https://claude.ai/code), [Remote Control](/en/remote-control), [Slack](/en/slack), and [CI/CD pipelines](/en/github-actions). The interface determines how you see and interact with Claude, but the underlying agentic loop is identical. See [Use Claude Code everywhere](/en/overview#use-claude-code-everywhere) for the full list.
 
 ## Work with sessions
 
-Claude Code saves your conversation locally as you work. Each message, tool use, and result is stored, which enables [rewinding](#undo-changes-with-checkpoints), [resuming, and forking](#resume-or-fork-sessions) sessions. Before Claude makes code changes, it also snapshots the affected files so you can revert if needed.
+Claude Code saves your conversation locally as you work. Each message, tool use, and result is written to a plaintext JSONL file under `~/.claude/projects/`, which enables [rewinding](#undo-changes-with-checkpoints), [resuming, and forking](#resume-or-fork-sessions) sessions. Before Claude makes code changes, it also snapshots the affected files so you can revert if needed. For paths, retention, and how to clear this data, see [application data in `~/.claude`](/en/claude-directory#application-data).
 
 **Sessions are independent.** Each new session starts with a fresh context window, without the conversation history from previous sessions. Claude can persist learnings across sessions using [auto memory](/en/memory#auto-memory), and you can add your own persistent instructions in [CLAUDE.md](/en/memory).
 
@@ -124,7 +124,9 @@ This creates a new session ID while preserving the conversation history up to th
 
 ### The context window
 
-Claude's context window holds your conversation history, file contents, command outputs, [CLAUDE.md](/en/memory), loaded skills, and system instructions. As you work, context fills up. Claude compacts automatically, but instructions from early in the conversation can get lost. Put persistent rules in CLAUDE.md, and run `/context` to see what's using space.
+Claude's context window holds your conversation history, file contents, command outputs, [CLAUDE.md](/en/memory), [auto memory](/en/memory#auto-memory), loaded skills, and system instructions. As you work, context fills up. Claude compacts automatically, but instructions from early in the conversation can get lost. Put persistent rules in CLAUDE.md, and run `/context` to see what's using space.
+
+For an interactive walkthrough of what loads and when, see [Explore the context window](/en/context-window).
 
 #### When context fills up
 
@@ -132,7 +134,9 @@ Claude Code manages context automatically as you approach the limit. It clears o
 
 To control what's preserved during compaction, add a "Compact Instructions" section to CLAUDE.md or run `/compact` with a focus (like `/compact focus on the API changes`).
 
-Run `/context` to see what's using space. MCP servers add tool definitions to every request, so a few servers can consume significant context before you start working. Run `/mcp` to check per-server costs.
+If a single file or tool output is so large that context refills immediately after each summary, Claude Code stops auto-compacting after a few attempts and shows an error instead of looping. See [Auto-compaction stops with a thrashing error](/en/troubleshooting#auto-compaction-stops-with-a-thrashing-error) for recovery steps.
+
+Run `/context` to see what's using space. MCP tool definitions are deferred by default and loaded on demand via [tool search](/en/mcp#scale-with-mcp-tool-search), so only tool names consume context until Claude uses a specific tool. Run `/mcp` to check per-server costs.
 
 #### Manage context with skills and subagents
 
@@ -159,8 +163,9 @@ Checkpoints are local to your session, separate from git. They only cover file c
 Press `Shift+Tab` to cycle through permission modes:
 
 * **Default**: Claude asks before file edits and shell commands
-* **Auto-accept edits**: Claude edits files without asking, still asks for commands
+* **Auto-accept edits**: Claude edits files and runs common filesystem commands like `mkdir` and `mv` without asking, still asks for other commands
 * **Plan mode**: Claude uses read-only tools only, creating a plan you can approve before execution
+* **Auto mode**: Claude evaluates all actions with background safety checks. Currently a research preview
 
 You can also allow specific commands in `.claude/settings.json` so Claude doesn't ask each time. This is useful for trusted commands like `npm test` or `git status`. Settings can be scoped from organization-wide policies down to personal preferences. See [Permissions](/en/permissions) for details.
 

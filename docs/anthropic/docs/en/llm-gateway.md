@@ -37,6 +37,14 @@ Failure to forward headers or preserve body fields may result in reduced functio
   Claude Code determines which features to enable based on the API format. When using the Anthropic Messages format with Bedrock or Vertex, you may need to set environment variable `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`.
 </Note>
 
+**Request headers**
+
+Claude Code includes the following headers on every API request:
+
+| Header                     | Description                                                                                                                                                         |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `X-Claude-Code-Session-Id` | A unique identifier for the current Claude Code session. Proxies can use this to aggregate all API requests from a single session without parsing the request body. |
+
 ## Configuration
 
 ### Model selection
@@ -47,9 +55,15 @@ If you have configured custom model names in your gateway, use the environment v
 
 ## LiteLLM configuration
 
-<Note>
+<Warning>
+  LiteLLM PyPI versions 1.82.7 and 1.82.8 were compromised with credential-stealing malware. Do not install these versions. If you have already installed them:
+
+  * Remove the package
+  * Rotate all credentials on affected systems
+  * Follow the remediation steps in [BerriAI/litellm#24518](https://github.com/BerriAI/litellm/issues/24518)
+
   LiteLLM is a third-party proxy service. Anthropic doesn't endorse, maintain, or audit LiteLLM's security or functionality. This guide is provided for informational purposes and may become outdated. Use at your own discretion.
-</Note>
+</Warning>
 
 ### Prerequisites
 
