@@ -9,28 +9,30 @@
 ## Troubleshoot installation issues
 
 <Tip>
-  If you'd rather skip the terminal entirely, the [Claude Code Desktop app](/en/desktop-quickstart) lets you install and use Claude Code through a graphical interface. Download it for [macOS](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect?utm_source=claude_code\&utm_medium=docs) or [Windows](https://claude.ai/api/desktop/win32/x64/exe/latest/redirect?utm_source=claude_code\&utm_medium=docs) and start coding without any command-line setup.
+  If you'd rather skip the terminal entirely, the [Claude Code Desktop app](/en/desktop-quickstart) lets you install and use Claude Code through a graphical interface. Download it for [macOS](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect?utm_source=claude_code\&utm_medium=docs) or [Windows](https://claude.com/download?utm_source=claude_code\&utm_medium=docs) and start coding without any command-line setup.
 </Tip>
 
 Find the error message or symptom you're seeing:
 
-| What you see                                                | Solution                                                                                                                |
-| :---------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| `command not found: claude` or `'claude' is not recognized` | [Fix your PATH](#command-not-found-claude-after-installation)                                                           |
-| `syntax error near unexpected token '<'`                    | [Install script returns HTML](#install-script-returns-html-instead-of-a-shell-script)                                   |
-| `curl: (56) Failure writing output to destination`          | [Download script first, then run it](#curl-56-failure-writing-output-to-destination)                                    |
-| `Killed` during install on Linux                            | [Add swap space for low-memory servers](#install-killed-on-low-memory-linux-servers)                                    |
-| `TLS connect error` or `SSL/TLS secure channel`             | [Update CA certificates](#tls-or-ssl-connection-errors)                                                                 |
-| `Failed to fetch version` or can't reach download server    | [Check network and proxy settings](#check-network-connectivity)                                                         |
-| `irm is not recognized` or `&& is not valid`                | [Use the right command for your shell](#windows-irm-or--not-recognized)                                                 |
-| `Claude Code on Windows requires git-bash`                  | [Install or configure Git Bash](#windows-claude-code-on-windows-requires-git-bash)                                      |
-| `Error loading shared library`                              | [Wrong binary variant for your system](#linux-wrong-binary-variant-installed-muslglibc-mismatch)                        |
-| `Illegal instruction` on Linux                              | [Architecture mismatch](#illegal-instruction-on-linux)                                                                  |
-| `dyld: cannot load` or `Abort trap` on macOS                | [Binary incompatibility](#dyld-cannot-load-on-macos)                                                                    |
-| `Invoke-Expression: Missing argument in parameter list`     | [Install script returns HTML](#install-script-returns-html-instead-of-a-shell-script)                                   |
-| `App unavailable in region`                                 | Claude Code is not available in your country. See [supported countries](https://www.anthropic.com/supported-countries). |
-| `unable to get local issuer certificate`                    | [Configure corporate CA certificates](#tls-or-ssl-connection-errors)                                                    |
-| `OAuth error` or `403 Forbidden`                            | [Fix authentication](#authentication-issues)                                                                            |
+| What you see                                                            | Solution                                                                                                                |
+| :---------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| `command not found: claude` or `'claude' is not recognized`             | [Fix your PATH](#command-not-found-claude-after-installation)                                                           |
+| `syntax error near unexpected token '<'`                                | [Install script returns HTML](#install-script-returns-html-instead-of-a-shell-script)                                   |
+| `curl: (56) Failure writing output to destination`                      | [Download script first, then run it](#curl-56-failure-writing-output-to-destination)                                    |
+| `Killed` during install on Linux                                        | [Add swap space for low-memory servers](#install-killed-on-low-memory-linux-servers)                                    |
+| `TLS connect error` or `SSL/TLS secure channel`                         | [Update CA certificates](#tls-or-ssl-connection-errors)                                                                 |
+| `Failed to fetch version` or can't reach download server                | [Check network and proxy settings](#check-network-connectivity)                                                         |
+| `irm is not recognized` or `&& is not valid`                            | [Use the right command for your shell](#windows-wrong-install-command)                                                  |
+| `'bash' is not recognized as the name of a cmdlet`                      | [Use the Windows installer command](#windows-wrong-install-command)                                                     |
+| `Claude Code on Windows requires git-bash`                              | [Install or configure Git Bash](#windows-claude-code-on-windows-requires-git-bash)                                      |
+| `Claude Code does not support 32-bit Windows`                           | [Open Windows PowerShell, not the x86 entry](#windows-claude-code-does-not-support-32-bit-windows)                      |
+| `Error loading shared library`                                          | [Wrong binary variant for your system](#linux-wrong-binary-variant-installed-musl/glibc-mismatch)                       |
+| `Illegal instruction` on Linux                                          | [Architecture mismatch](#illegal-instruction-on-linux)                                                                  |
+| `dyld: cannot load`, `dyld: Symbol not found`, or `Abort trap` on macOS | [Binary incompatibility](#dyld-cannot-load-on-macos)                                                                    |
+| `Invoke-Expression: Missing argument in parameter list`                 | [Install script returns HTML](#install-script-returns-html-instead-of-a-shell-script)                                   |
+| `App unavailable in region`                                             | Claude Code is not available in your country. See [supported countries](https://www.anthropic.com/supported-countries). |
+| `unable to get local issuer certificate`                                | [Configure corporate CA certificates](#tls-or-ssl-connection-errors)                                                    |
+| `OAuth error` or `403 Forbidden`                                        | [Fix authentication](#authentication-issues)                                                                            |
 
 If your issue isn't listed, work through these diagnostic steps.
 
@@ -172,7 +174,7 @@ Uninstall an npm global install:
 npm uninstall -g @anthropic-ai/claude-code
 ```
 
-Remove a Homebrew install on macOS:
+Remove a Homebrew install on macOS (use `claude-code@latest` if you installed that cask):
 
 ```bash  theme={null}
 brew uninstall --cask claude-code
@@ -328,6 +330,12 @@ Errors like `curl: (35) TLS connect error`, `schannel: next InitializeSecurityCo
    ```
    Ask your IT team for the certificate file if you don't have it. You can also try on a direct connection to confirm the proxy is the cause.
 
+4. **On Windows, bypass certificate revocation checks** if you see `CRYPT_E_NO_REVOCATION_CHECK (0x80092012)` or `CRYPT_E_REVOCATION_OFFLINE (0x80092013)`. These mean curl reached the server but your network blocks the certificate revocation lookup, which is common behind corporate firewalls. Add `--ssl-revoke-best-effort` to the install command:
+   ```bat  theme={null}
+   curl --ssl-revoke-best-effort -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+   ```
+   Alternatively, install with `winget install Anthropic.ClaudeCode`, which avoids curl entirely.
+
 ### `Failed to fetch version from storage.googleapis.com`
 
 The installer couldn't reach the download server. This typically means `storage.googleapis.com` is blocked on your network.
@@ -359,9 +367,9 @@ The installer couldn't reach the download server. This typically means `storage.
    winget install Anthropic.ClaudeCode
    ```
 
-### Windows: `irm` or `&&` not recognized
+### Windows: wrong install command
 
-If you see `'irm' is not recognized` or `The token '&&' is not valid`, you're running the wrong command for your shell.
+If you see `'irm' is not recognized`, `The token '&&' is not valid`, or `'bash' is not recognized as the name of a cmdlet`, you copied the install command for a different shell or operating system.
 
 * **`irm` not recognized**: you're in CMD, not PowerShell. You have two options:
 
@@ -378,6 +386,11 @@ If you see `'irm' is not recognized` or `The token '&&' is not valid`, you're ru
   ```
 
 * **`&&` not valid**: you're in PowerShell but ran the CMD installer command. Use the PowerShell installer:
+  ```powershell  theme={null}
+  irm https://claude.ai/install.ps1 | iex
+  ```
+
+* **`bash` not recognized**: you ran the macOS/Linux installer on Windows. Use the PowerShell installer instead:
   ```powershell  theme={null}
   irm https://claude.ai/install.ps1 | iex
   ```
@@ -440,7 +453,7 @@ If you installed an older version of Claude Desktop, it may register a `Claude.e
 
 Update Claude Desktop to the latest version to fix this issue.
 
-### Windows: "Claude Code on Windows requires git-bash"
+### Windows: Claude Code on Windows requires git-bash
 
 Claude Code on native Windows needs [Git for Windows](https://git-scm.com/downloads/win), which includes Git Bash.
 
@@ -457,6 +470,18 @@ Claude Code on native Windows needs [Git for Windows](https://git-scm.com/downlo
 ```
 
 If your Git is installed somewhere else, find the path by running `where.exe git` in PowerShell and use the `bin\bash.exe` path from that directory.
+
+### Windows: Claude Code does not support 32-bit Windows
+
+Windows includes two PowerShell entries in the Start menu: `Windows PowerShell` and `Windows PowerShell (x86)`. The x86 entry runs as a 32-bit process and triggers this error even on a 64-bit machine. To check which case you're in, run this in the same window that produced the error:
+
+```powershell  theme={null}
+[Environment]::Is64BitOperatingSystem
+```
+
+If this prints `True`, your operating system is fine. Close the window, open `Windows PowerShell` without the x86 suffix, and run the install command again.
+
+If this prints `False`, you are on a 32-bit edition of Windows. Claude Code requires a 64-bit operating system. See the [system requirements](/en/setup#system-requirements).
 
 ### Linux: wrong binary variant installed (musl/glibc mismatch)
 
@@ -506,11 +531,19 @@ bash: line 142: 2238232 Illegal instruction    "$binary_path" install ${TARGET:+
 
 ### `dyld: cannot load` on macOS
 
-If you see `dyld: cannot load` or `Abort trap: 6` during installation, the binary is incompatible with your macOS version or hardware.
+If you see `dyld: cannot load`, `dyld: Symbol not found`, or `Abort trap: 6` during installation, the binary is incompatible with your macOS version or hardware.
 
 ```text  theme={null}
 dyld: cannot load 'claude-2.1.42-darwin-x64' (load command 0x80000034 is unknown)
 Abort trap: 6
+```
+
+A `Symbol not found` error that references `libicucore` also indicates your macOS version is older than the binary supports:
+
+```text  theme={null}
+dyld: Symbol not found: _ubrk_clone
+  Referenced from: claude-darwin-x64 (which was built for Mac OS X 13.0)
+  Expected in: /usr/lib/libicucore.A.dylib
 ```
 
 **Solutions:**
@@ -575,7 +608,7 @@ export PATH="$HOME/.nvm/versions/node/$(node -v)/bin:$PATH"
 
 ### WSL2 sandbox setup
 
-[Sandboxing](/en/sandboxing) is supported on WSL2 but requires installing additional packages. If you see an error like "Sandbox requires socat and bubblewrap" when running `/sandbox`, install the dependencies:
+[Sandboxing](/en/sandboxing) is supported on WSL2 but requires installing additional packages. If you see an error about missing `bubblewrap` or `socat` when running `/sandbox`, install the dependencies:
 
 <Tabs>
   <Tab title="Ubuntu/Debian">
@@ -592,6 +625,8 @@ export PATH="$HOME/.nvm/versions/node/$(node -v)/bin:$PATH"
 </Tabs>
 
 WSL1 does not support sandboxing. If you see "Sandboxing requires WSL2", you need to upgrade to WSL2 or run Claude Code without sandboxing.
+
+Sandboxed commands cannot launch Windows binaries such as `cmd.exe`, `powershell.exe`, or executables under `/mnt/c/`. WSL hands these off to the Windows host over a Unix socket, which the sandbox blocks. If a command needs to invoke a Windows binary, add it to [`excludedCommands`](/en/settings#sandbox-settings) so it runs outside the sandbox.
 
 ### Permission errors during installation
 
@@ -640,6 +675,43 @@ If you see `API Error: 403 {"error":{"type":"forbidden","message":"Request not a
 * **Console users**: confirm your account has the "Claude Code" or "Developer" role assigned by your admin
 * **Behind a proxy**: corporate proxies can interfere with API requests. See [network configuration](/en/network-config) for proxy setup.
 
+### Model not found or not accessible
+
+If you see `There's an issue with the selected model (...). It may not exist or you may not have access to it`, the API rejected the configured model name.
+
+Common causes:
+
+* A typo in the model name passed to `--model`
+* A stale or deprecated model ID saved in your settings
+* An API key without access to that model on your current usage tier
+
+Check where the model is set, in [priority order](/en/model-config#setting-your-model):
+
+* The `--model` flag
+* The `ANTHROPIC_MODEL` environment variable
+* The `model` field in `.claude/settings.local.json`
+* The `model` field in your project's `.claude/settings.json`
+* The `model` field in `~/.claude/settings.json`
+
+To clear a stale value, remove the `model` field from your settings or unset `ANTHROPIC_MODEL`, and Claude Code will fall back to the default model for your account.
+
+To browse models available to your account, start `claude` interactively and run `/model` to open the picker. For Vertex AI deployments, see [the Vertex AI troubleshooting section](/en/google-vertex-ai#troubleshooting).
+
+### This organization has been disabled with an active subscription
+
+If you see `API Error: 400 ... "This organization has been disabled"` despite having an active Claude subscription, an `ANTHROPIC_API_KEY` environment variable is overriding your subscription. This commonly happens when an old API key from a previous employer or project is still set in your shell profile.
+
+When `ANTHROPIC_API_KEY` is present and you have approved it, Claude Code uses that key instead of your subscription's OAuth credentials. In non-interactive mode (`-p`), the key is always used when present. See [authentication precedence](/en/authentication#authentication-precedence) for the full resolution order.
+
+To use your subscription instead, unset the environment variable and remove it from your shell profile:
+
+```bash  theme={null}
+unset ANTHROPIC_API_KEY
+claude
+```
+
+Check `~/.zshrc`, `~/.bashrc`, or `~/.profile` for `export ANTHROPIC_API_KEY=...` lines and remove them to make the change permanent. Run `/status` inside Claude Code to confirm which authentication method is active.
+
 ### OAuth login fails in WSL2
 
 Browser-based login in WSL2 may fail if WSL can't open your Windows browser. Set the `BROWSER` environment variable:
@@ -651,11 +723,13 @@ claude
 
 Or copy the URL manually: when the login prompt appears, press `c` to copy the OAuth URL, then paste it into your Windows browser.
 
-### "Not logged in" or token expired
+### Not logged in or token expired
 
 If Claude Code prompts you to log in again after a session, your OAuth token may have expired.
 
 Run `/login` to re-authenticate. If this happens frequently, check that your system clock is accurate, as token validation depends on correct timestamps.
+
+On macOS, login can also fail when the Keychain is locked or its password is out of sync with your account password, which prevents Claude Code from saving credentials. Run `claude doctor` to check Keychain access. To unlock the Keychain manually, run `security unlock-keychain ~/Library/Keychains/login.keychain-db`. If unlocking doesn't help, open Keychain Access, select the `login` keychain, and choose Edit > Change Password for Keychain "login" to resync it with your account password.
 
 ## Configuration file locations
 
@@ -704,6 +778,17 @@ Claude Code is designed to work with most development environments, but may cons
 1. Use `/compact` regularly to reduce context size
 2. Close and restart Claude Code between major tasks
 3. Consider adding large build directories to your `.gitignore` file
+
+### Auto-compaction stops with a thrashing error
+
+If you see `Autocompact is thrashing: the context refilled to the limit...`, automatic compaction succeeded but a file or tool output immediately refilled the context window several times in a row. Claude Code stops retrying to avoid wasting API calls on a loop that isn't making progress.
+
+To recover:
+
+1. Ask Claude to read the oversized file in smaller chunks, such as a specific line range or function, instead of the whole file
+2. Run `/compact` with a focus that drops the large output, for example `/compact keep only the plan and the diff`
+3. Move the large-file work to a [subagent](/en/sub-agents) so it runs in a separate context window
+4. Run `/clear` if the earlier conversation is no longer needed
 
 ### Command hangs or freezes
 
@@ -833,7 +918,7 @@ If you notice code blocks like this in generated markdown:
 function example() {
   return "hello";
 }
-```text
+```
 ````
 
 Instead of properly tagged blocks like:
@@ -843,7 +928,7 @@ Instead of properly tagged blocks like:
 function example() {
   return "hello";
 }
-```text
+```
 ````
 
 **Solutions:**
@@ -878,7 +963,7 @@ To minimize formatting issues:
 
 If you're experiencing issues not covered here:
 
-1. Use the `/bug` command within Claude Code to report problems directly to Anthropic
+1. Use the `/feedback` command within Claude Code to report problems directly to Anthropic
 2. Check the [GitHub repository](https://github.com/anthropics/claude-code) for known issues
 3. Run `/doctor` to diagnose issues. It checks:
    * Installation type, version, and search functionality
