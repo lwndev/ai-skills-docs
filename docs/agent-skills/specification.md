@@ -32,7 +32,7 @@ The `SKILL.md` file must contain YAML frontmatter followed by Markdown content.
 | `license`       | No       | License name or reference to a bundled license file.                                                              |
 | `compatibility` | No       | Max 500 characters. Indicates environment requirements (intended product, system packages, network access, etc.). |
 | `metadata`      | No       | Arbitrary key-value mapping for additional metadata.                                                              |
-| `allowed-tools` | No       | Space-delimited list of pre-approved tools the skill may use. (Experimental)                                      |
+| `allowed-tools` | No       | Space-separated string of pre-approved tools the skill may use. (Experimental)                                    |
 
 <Card>
   **Minimal example:**
@@ -153,6 +153,10 @@ The optional `compatibility` field:
   ```yaml  theme={null}
   compatibility: Requires git, docker, jq, and access to the internet
   ```
+
+  ```yaml  theme={null}
+  compatibility: Requires Python 3.14+ and uv
+  ```
 </Card>
 
 <Note>
@@ -181,7 +185,7 @@ The optional `metadata` field:
 
 The optional `allowed-tools` field:
 
-* A space-delimited list of tools that are pre-approved to run
+* A space-separated string of tools that are pre-approved to run
 * Experimental. Support for this field may vary between agent implementations
 
 <Card>

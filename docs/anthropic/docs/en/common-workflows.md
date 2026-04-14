@@ -280,6 +280,8 @@ How should we handle database migration?
 
 <Tip>Press `Ctrl+G` to open the plan in your default text editor, where you can edit it directly before Claude proceeds.</Tip>
 
+When you accept a plan, Claude automatically names the session from the plan content. The name appears on the prompt bar and in the session picker. If you've already set a name with `--name` or `/rename`, accepting a plan won't overwrite it.
+
 ### Configure Plan Mode as default
 
 ```json  theme={null}
@@ -518,13 +520,13 @@ Extended thinking is particularly valuable for complex architectural decisions, 
 
 Thinking is enabled by default, but you can adjust or disable it.
 
-| Scope                    | How to configure                                                                     | Details                                                                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Effort level**         | Run `/effort`, adjust in `/model`, or set [`CLAUDE_CODE_EFFORT_LEVEL`](/en/env-vars) | Control thinking depth for Opus 4.6 and Sonnet 4.6. See [Adjust effort level](/en/model-config#adjust-effort-level)                                              |
-| **`ultrathink` keyword** | Include "ultrathink" anywhere in your prompt                                         | Sets effort to high for that turn on Opus 4.6 and Sonnet 4.6. Useful for one-off tasks requiring deep reasoning without permanently changing your effort setting |
-| **Toggle shortcut**      | Press `Option+T` (macOS) or `Alt+T` (Windows/Linux)                                  | Toggle thinking on/off for the current session (all models). May require [terminal configuration](/en/terminal-config) to enable Option key shortcuts            |
-| **Global default**       | Use `/config` to toggle thinking mode                                                | Sets your default across all projects (all models).<br />Saved as `alwaysThinkingEnabled` in `~/.claude/settings.json`                                           |
-| **Limit token budget**   | Set [`MAX_THINKING_TOKENS`](/en/env-vars) environment variable                       | Limit the thinking budget to a specific number of tokens (ignored on Opus 4.6 and Sonnet 4.6 unless set to 0). Example: `export MAX_THINKING_TOKENS=10000`       |
+| Scope                    | How to configure                                                                     | Details                                                                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Effort level**         | Run `/effort`, adjust in `/model`, or set [`CLAUDE_CODE_EFFORT_LEVEL`](/en/env-vars) | Control thinking depth for Opus 4.6 and Sonnet 4.6. See [Adjust effort level](/en/model-config#adjust-effort-level)                                                                       |
+| **`ultrathink` keyword** | Include "ultrathink" anywhere in your prompt                                         | Sets effort to high for that turn on Opus 4.6 and Sonnet 4.6. Useful for one-off tasks requiring deep reasoning without permanently changing your effort setting                          |
+| **Toggle shortcut**      | Press `Option+T` (macOS) or `Alt+T` (Windows/Linux)                                  | Toggle thinking on/off for the current session (all models). May require [terminal configuration](/en/terminal-config) to enable Option key shortcuts                                     |
+| **Global default**       | Use `/config` to toggle thinking mode                                                | Sets your default across all projects (all models).<br />Saved as `alwaysThinkingEnabled` in `~/.claude/settings.json`                                                                    |
+| **Limit token budget**   | Set [`MAX_THINKING_TOKENS`](/en/env-vars) environment variable                       | Limit the thinking budget to a specific number of tokens. On Opus 4.6 and Sonnet 4.6, only `0` applies unless adaptive reasoning is disabled. Example: `export MAX_THINKING_TOKENS=10000` |
 
 To view Claude's thinking process, press `Ctrl+O` to toggle verbose mode and see the internal reasoning displayed as gray italic text.
 
@@ -534,12 +536,12 @@ Extended thinking controls how much internal reasoning Claude performs before re
 
 **With Opus 4.6 and Sonnet 4.6**, thinking uses adaptive reasoning: the model dynamically allocates thinking tokens based on the [effort level](/en/model-config#adjust-effort-level) you select. This is the recommended way to tune the tradeoff between speed and reasoning depth.
 
-**With older models**, thinking uses a fixed budget of up to 31,999 tokens from your output budget. You can limit this with the [`MAX_THINKING_TOKENS`](/en/env-vars) environment variable, or disable thinking entirely via `/config` or the `Option+T`/`Alt+T` toggle.
+**With older models**, thinking uses a fixed token budget drawn from your output allocation. The budget varies by model; see [`MAX_THINKING_TOKENS`](/en/env-vars) for per-model ceilings. You can limit the budget with that environment variable, or disable thinking entirely via `/config` or the `Option+T`/`Alt+T` toggle.
 
-`MAX_THINKING_TOKENS` is ignored on Opus 4.6 and Sonnet 4.6, since adaptive reasoning controls thinking depth instead. The one exception: setting `MAX_THINKING_TOKENS=0` still disables thinking entirely on any model. To disable adaptive thinking and revert to the fixed thinking budget, set `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1`. See [environment variables](/en/env-vars).
+On Opus 4.6 and Sonnet 4.6, [adaptive reasoning](/en/model-config#adjust-effort-level) controls thinking depth, so `MAX_THINKING_TOKENS` only applies when set to `0` to disable thinking, or when `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1` reverts these models to the fixed budget. See [environment variables](/en/env-vars).
 
 <Warning>
-  You're charged for all thinking tokens used, even though Claude 4 models show summarized thinking
+  You're charged for all thinking tokens used even when thinking summaries are redacted. In interactive mode, thinking appears as a collapsed stub by default. Set `showThinkingSummaries: true` in `settings.json` to show full summaries.
 </Warning>
 
 ***
@@ -554,7 +556,7 @@ When starting Claude Code, you can resume a previous session:
 
 From inside an active session, use `/resume` to switch to a different conversation.
 
-Sessions are stored per project directory. The `/resume` picker shows sessions from the same git repository, including worktrees.
+Sessions are stored per project directory. The `/resume` picker shows interactive sessions from the same git repository, including worktrees. When you select a session from another worktree of the same repository, Claude Code resumes it directly without requiring you to switch directories first. Sessions created by `claude -p` or SDK invocations do not appear in the picker, but you can still resume one by passing its session ID or custom name to `claude --resume <session-id-or-name>`. Custom names set with `--name` or `/rename` are accepted in addition to session IDs.
 
 ### Name your sessions
 
@@ -619,12 +621,12 @@ The picker displays sessions with helpful metadata:
 * Message count
 * Git branch (if applicable)
 
-Forked sessions (created with `/rewind` or `--fork-session`) are grouped together under their root session, making it easier to find related conversations.
+Forked sessions (created with `/branch`, `/rewind`, or `--fork-session`) are grouped together under their root session, making it easier to find related conversations.
 
 <Tip>
   Tips:
 
-  * **Name sessions early**: Use `/rename` when starting work on a distinct task—it's much easier to find "payment-integration" than "explain this function" later
+  * **Name sessions early**: Use `/rename` when starting work on a distinct task: it's much easier to find "payment-integration" than "explain this function" later
   * Use `--continue` for quick access to your most recent conversation in the current directory
   * Use `--resume session-name` when you know which session you need
   * Use `--resume` (without a name) when you need to browse and select
@@ -664,7 +666,17 @@ If you omit the name, Claude generates a random one automatically:
 claude --worktree
 ```
 
-Worktrees are created at `<repo>/.claude/worktrees/<name>` and branch from the default remote branch. The worktree branch is named `worktree-<name>`.
+Worktrees are created at `<repo>/.claude/worktrees/<name>` and branch from the default remote branch, which is where `origin/HEAD` points. The worktree branch is named `worktree-<name>`.
+
+The base branch is not configurable through a Claude Code flag or setting. `origin/HEAD` is a reference stored in your local `.git` directory that Git set once when you cloned. If the repository's default branch later changes on GitHub or GitLab, your local `origin/HEAD` keeps pointing at the old one, and worktrees will branch from there. To re-sync your local reference with whatever the remote currently considers its default:
+
+```bash  theme={null}
+git remote set-head origin -a
+```
+
+This is a standard Git command that only updates your local `.git` directory. Nothing on the remote server changes. If you want worktrees to base off a specific branch rather than the remote's default, set it explicitly with `git remote set-head origin your-branch-name`.
+
+For full control over how worktrees are created, including choosing a different base per invocation, configure a [WorktreeCreate hook](/en/hooks#worktreecreate). The hook replaces Claude Code's default `git worktree` logic entirely, so you can fetch and branch from whatever ref you need.
 
 You can also ask Claude to "work in a worktree" or "start a worktree" during a session, and it will create one automatically.
 
@@ -679,11 +691,27 @@ When you exit a worktree session, Claude handles cleanup based on whether you ma
 * **No changes**: the worktree and its branch are removed automatically
 * **Changes or commits exist**: Claude prompts you to keep or remove the worktree. Keeping preserves the directory and branch so you can return later. Removing deletes the worktree directory and its branch, discarding all uncommitted changes and commits
 
+Subagent worktrees orphaned by a crash or an interrupted parallel run are removed automatically at startup once they are older than your [`cleanupPeriodDays`](/en/settings#available-settings) setting, provided they have no uncommitted changes, no untracked files, and no unpushed commits. Worktrees you create with `--worktree` are never removed by this sweep.
+
 To clean up worktrees outside of a Claude session, use [manual worktree management](#manage-worktrees-manually).
 
 <Tip>
   Add `.claude/worktrees/` to your `.gitignore` to prevent worktree contents from appearing as untracked files in your main repository.
 </Tip>
+
+### Copy gitignored files to worktrees
+
+Git worktrees are fresh checkouts, so they don't include untracked files like `.env` or `.env.local` from your main repository. To automatically copy these files when Claude creates a worktree, add a `.worktreeinclude` file to your project root.
+
+The file uses `.gitignore` syntax to list which files to copy. Only files that match a pattern and are also gitignored get copied, so tracked files are never duplicated.
+
+```text .worktreeinclude theme={null}
+.env
+.env.local
+config/secrets.json
+```
+
+This applies to worktrees created with `--worktree`, subagent worktrees, and parallel sessions in the [desktop app](/en/desktop#work-in-parallel-with-sessions).
 
 ### Manage worktrees manually
 
@@ -712,7 +740,7 @@ Learn more in the [official Git worktree documentation](https://git-scm.com/docs
 
 ### Non-git version control
 
-Worktree isolation works with git by default. For other version control systems like SVN, Perforce, or Mercurial, configure [WorktreeCreate and WorktreeRemove hooks](/en/hooks#worktreecreate) to provide custom worktree creation and cleanup logic. When configured, these hooks replace the default git behavior when you use `--worktree`.
+Worktree isolation works with git by default. For other version control systems like SVN, Perforce, or Mercurial, configure [WorktreeCreate and WorktreeRemove hooks](/en/hooks#worktreecreate) to provide custom worktree creation and cleanup logic. When configured, these hooks replace the default git behavior when you use `--worktree`, so [`.worktreeinclude`](#copy-gitignored-files-to-worktrees) is not processed. Copy any local configuration files inside your hook script instead.
 
 For automated coordination of parallel sessions with shared tasks and messaging, see [agent teams](/en/agent-teams).
 
@@ -853,7 +881,7 @@ cat build-error.txt | claude -p 'concisely explain the root cause of this build 
 
   * Use pipes to integrate Claude into existing shell scripts
   * Combine with other Unix tools for powerful workflows
-  * Consider using --output-format for structured output
+  * Consider using `--output-format` for structured output
 </Tip>
 
 ### Control output format
@@ -896,6 +924,25 @@ Suppose you need Claude's output in a specific format, especially when integrati
 
 ***
 
+## Run Claude on a schedule
+
+Suppose you want Claude to handle a task automatically on a recurring basis, like reviewing open PRs every morning, auditing dependencies weekly, or checking for CI failures overnight.
+
+Pick a scheduling option based on where you want the task to run:
+
+| Option                                                 | Where it runs                     | Best for                                                                                                      |
+| :----------------------------------------------------- | :-------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| [Cloud scheduled tasks](/en/web-scheduled-tasks)       | Anthropic-managed infrastructure  | Tasks that should run even when your computer is off. Configure at [claude.ai/code](https://claude.ai/code).  |
+| [Desktop scheduled tasks](/en/desktop-scheduled-tasks) | Your machine, via the desktop app | Tasks that need direct access to local files, tools, or uncommitted changes.                                  |
+| [GitHub Actions](/en/github-actions)                   | Your CI pipeline                  | Tasks tied to repo events like opened PRs, or cron schedules that should live alongside your workflow config. |
+| [`/loop`](/en/scheduled-tasks)                         | The current CLI session           | Quick polling while a session is open. Tasks are cancelled when you exit.                                     |
+
+<Tip>
+  When writing prompts for scheduled tasks, be explicit about what success looks like and what to do with results. The task runs autonomously, so it can't ask clarifying questions. For example: "Review open PRs labeled `needs-review`, leave inline comments on any issues, and post a summary in the `#eng-reviews` Slack channel."
+</Tip>
+
+***
+
 ## Ask Claude about its capabilities
 
 Claude has built-in access to its documentation and can answer questions about its own features and limitations.
@@ -927,7 +974,7 @@ what are the limitations of Claude Code?
 ```
 
 <Note>
-  Claude provides documentation-based answers to these questions. For executable examples and hands-on demonstrations, refer to the specific workflow sections above.
+  Claude provides documentation-based answers to these questions. For hands-on demonstrations, run `/powerup` for interactive lessons with animated demos, or refer to the specific workflow sections above.
 </Note>
 
 <Tip>
@@ -956,6 +1003,6 @@ what are the limitations of Claude Code?
   </Card>
 
   <Card title="Reference implementation" icon="code" href="https://github.com/anthropics/claude-code/tree/main/.devcontainer">
-    Clone our development container reference implementation
+    Clone the development container reference implementation
   </Card>
 </CardGroup>
