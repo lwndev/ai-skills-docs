@@ -32,7 +32,7 @@ The `SKILL.md` file must contain YAML frontmatter followed by Markdown content.
 | `license`       | No       | License name or reference to a bundled license file.                                                              |
 | `compatibility` | No       | Max 500 characters. Indicates environment requirements (intended product, system packages, network access, etc.). |
 | `metadata`      | No       | Arbitrary key-value mapping for additional metadata.                                                              |
-| `allowed-tools` | No       | Space-delimited list of pre-approved tools the skill may use. (Experimental)                                      |
+| `allowed-tools` | No       | Space-separated string of pre-approved tools the skill may use. (Experimental)                                    |
 
 <Card>
   **Minimal example:**
@@ -71,29 +71,29 @@ The required `name` field:
 <Card>
   **Valid examples:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   name: pdf-processing
   ```
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   name: data-analysis
   ```
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   name: code-review
   ```
 
   **Invalid examples:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   name: PDF-Processing  # uppercase not allowed
   ```
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   name: -pdf  # cannot start with hyphen
   ```
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   name: pdf--processing  # consecutive hyphens not allowed
   ```
 </Card>
@@ -109,13 +109,13 @@ The required `description` field:
 <Card>
   **Good example:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   description: Extracts text and tables from PDF files, fills PDF forms, and merges multiple PDFs. Use when working with PDF documents or when the user mentions PDFs, forms, or document extraction.
   ```
 
   **Poor example:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   description: Helps with PDFs.
   ```
 </Card>
@@ -130,7 +130,7 @@ The optional `license` field:
 <Card>
   **Example:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   license: Proprietary. LICENSE.txt has complete terms
   ```
 </Card>
@@ -146,12 +146,16 @@ The optional `compatibility` field:
 <Card>
   **Examples:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   compatibility: Designed for Claude Code (or similar products)
   ```
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   compatibility: Requires git, docker, jq, and access to the internet
+  ```
+
+  ```yaml theme={null}
+  compatibility: Requires Python 3.14+ and uv
   ```
 </Card>
 
@@ -170,7 +174,7 @@ The optional `metadata` field:
 <Card>
   **Example:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   metadata:
     author: example-org
     version: "1.0"
@@ -181,13 +185,13 @@ The optional `metadata` field:
 
 The optional `allowed-tools` field:
 
-* A space-delimited list of tools that are pre-approved to run
+* A space-separated string of tools that are pre-approved to run
 * Experimental. Support for this field may vary between agent implementations
 
 <Card>
   **Example:**
 
-  ```yaml  theme={null}
+  ```yaml theme={null}
   allowed-tools: Bash(git:*) Bash(jq:*) Read
   ```
 </Card>
@@ -261,11 +265,8 @@ Keep file references one level deep from `SKILL.md`. Avoid deeply nested referen
 
 Use the [skills-ref](https://github.com/agentskills/agentskills/tree/main/skills-ref) reference library to validate your skills:
 
-```bash  theme={null}
+```bash theme={null}
 skills-ref validate ./my-skill
 ```
 
 This checks that your `SKILL.md` frontmatter is valid and follows all naming conventions.
-
-
-Built with [Mintlify](https://mintlify.com).

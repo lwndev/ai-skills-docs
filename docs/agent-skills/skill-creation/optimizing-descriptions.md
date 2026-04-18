@@ -93,7 +93,7 @@ A should-trigger query passes if its trigger rate is above a threshold (0.5 is a
 
 With 20 queries at 3 runs each, that's 60 invocations. You'll want to script this. Here's the general structure — replace the `claude` invocation and detection logic in `check_triggered` with whatever your agent client provides:
 
-```bash  theme={null}
+```bash theme={null}
 #!/bin/bash
 QUERIES_FILE="${1:?Usage: $0 <queries.json>}"
 SKILL_NAME="my-skill"
@@ -176,7 +176,7 @@ Once you've selected the best description:
 
 Before and after:
 
-```yaml  theme={null}
+```yaml theme={null}
 # Before
 description: Process CSV files.
 
@@ -194,6 +194,3 @@ The improved description is more specific about what the skill does (summary sta
 ## Next steps
 
 Once your skill triggers reliably, you'll want to evaluate whether it produces good outputs. See [Evaluating skill output quality](/skill-creation/evaluating-skills) for how to set up test cases, grade results, and iterate.
-
-
-Built with [Mintlify](https://mintlify.com).
