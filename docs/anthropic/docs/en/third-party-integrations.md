@@ -6,7 +6,79 @@
 
 > Learn how Claude Code can integrate with various third-party services and infrastructure to meet enterprise deployment requirements.
 
+export const ContactSalesCard = ({surface}) => {
+  const utm = content => `utm_source=claude_code&utm_medium=docs&utm_content=${surface}_${content}`;
+  const iconArrowRight = (size = 13) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>;
+  const STYLES = `
+.cc-cs {
+  --cs-slate: #141413;
+  --cs-clay: #d97757;
+  --cs-clay-deep: #c6613f;
+  --cs-gray-000: #ffffff;
+  --cs-gray-700: #3d3d3a;
+  --cs-border-default: rgba(31, 30, 29, 0.15);
+  font-family: inherit;
+}
+.dark .cc-cs {
+  --cs-slate: #f0eee6;
+  --cs-gray-000: #262624;
+  --cs-gray-700: #bfbdb4;
+  --cs-border-default: rgba(240, 238, 230, 0.14);
+}
+.cc-cs-card {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 16px; margin: 0;
+  background: var(--cs-gray-000); border: 0.5px solid var(--cs-border-default);
+  border-radius: 8px; flex-wrap: wrap;
+}
+.cc-cs-text { font-size: 13px; color: var(--cs-gray-700); line-height: 1.5; flex: 1; min-width: 240px; }
+.cc-cs-text strong { font-weight: 550; color: var(--cs-slate); }
+.cc-cs-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cc-cs-btn-clay {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--cs-clay-deep); color: #fff; border: none;
+  border-radius: 8px; padding: 8px 14px;
+  font-size: 13px; font-weight: 500;
+  transition: background-color 0.15s; white-space: nowrap;
+}
+.cc-cs-btn-clay:hover { background: var(--cs-clay); }
+.cc-cs-btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; color: var(--cs-gray-700);
+  border: 0.5px solid var(--cs-border-default);
+  border-radius: 8px; padding: 8px 14px;
+  font-size: 13px; font-weight: 500;
+}
+.cc-cs-btn-ghost:hover { background: rgba(0, 0, 0, 0.04); }
+.dark .cc-cs-btn-ghost:hover { background: rgba(255, 255, 255, 0.04); }
+@media (max-width: 720px) {
+  .cc-cs-actions { width: 100%; }
+}
+`;
+  return <div className="cc-cs not-prose">
+      <style>{STYLES}</style>
+      <div className="cc-cs-card">
+        <div className="cc-cs-text">
+          <strong>Deploying Claude Code across your organization?</strong> Talk to sales about enterprise plans, SSO, and centralized billing.
+        </div>
+        <div className="cc-cs-actions">
+          <a href={`https://claude.com/pricing?${utm('view_plans')}#plans-business`} className="cc-cs-btn-ghost">
+            View plans
+          </a>
+          <a href={`https://claude.com/contact-sales?${utm('contact_sales')}`} className="cc-cs-btn-clay">
+            Contact sales {iconArrowRight()}
+          </a>
+        </div>
+      </div>
+    </div>;
+};
+
 Organizations can deploy Claude Code through Anthropic directly or through a cloud provider. This page helps you choose the right configuration.
+
+<ContactSalesCard surface="third_party_overview" />
 
 ## Compare deployment options
 
@@ -130,7 +202,7 @@ The following examples show the environment variables to set in your shell or sh
   <Tab title="Corporate proxy">
     Route Bedrock traffic through your corporate proxy by setting the following [environment variables](/en/env-vars):
 
-    ```bash  theme={null}
+    ```bash theme={null}
     # Enable Bedrock
     export CLAUDE_CODE_USE_BEDROCK=1
     export AWS_REGION=us-east-1
@@ -143,7 +215,7 @@ The following examples show the environment variables to set in your shell or sh
   <Tab title="LLM Gateway">
     Route Bedrock traffic through your LLM gateway by setting the following [environment variables](/en/env-vars):
 
-    ```bash  theme={null}
+    ```bash theme={null}
     # Enable Bedrock
     export CLAUDE_CODE_USE_BEDROCK=1
 
@@ -160,7 +232,7 @@ The following examples show the environment variables to set in your shell or sh
   <Tab title="Corporate proxy">
     Route Foundry traffic through your corporate proxy by setting the following [environment variables](/en/env-vars):
 
-    ```bash  theme={null}
+    ```bash theme={null}
     # Enable Microsoft Foundry
     export CLAUDE_CODE_USE_FOUNDRY=1
     export ANTHROPIC_FOUNDRY_RESOURCE=your-resource
@@ -174,7 +246,7 @@ The following examples show the environment variables to set in your shell or sh
   <Tab title="LLM Gateway">
     Route Foundry traffic through your LLM gateway by setting the following [environment variables](/en/env-vars):
 
-    ```bash  theme={null}
+    ```bash theme={null}
     # Enable Microsoft Foundry
     export CLAUDE_CODE_USE_FOUNDRY=1
 
@@ -191,7 +263,7 @@ The following examples show the environment variables to set in your shell or sh
   <Tab title="Corporate proxy">
     Route Vertex AI traffic through your corporate proxy by setting the following [environment variables](/en/env-vars):
 
-    ```bash  theme={null}
+    ```bash theme={null}
     # Enable Vertex
     export CLAUDE_CODE_USE_VERTEX=1
     export CLOUD_ML_REGION=us-east5
@@ -205,7 +277,7 @@ The following examples show the environment variables to set in your shell or sh
   <Tab title="LLM Gateway">
     Route Vertex AI traffic through your LLM gateway by setting the following [environment variables](/en/env-vars):
 
-    ```bash  theme={null}
+    ```bash theme={null}
     # Enable Vertex
     export CLAUDE_CODE_USE_VERTEX=1
 
@@ -241,7 +313,7 @@ Encourage new users to try Claude Code for codebase Q\&A, or on smaller bug fixe
 
 ### Pin model versions for cloud providers
 
-If you deploy through [Bedrock](/en/amazon-bedrock), [Vertex AI](/en/google-vertex-ai), or [Foundry](/en/microsoft-foundry), pin specific model versions using `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and `ANTHROPIC_DEFAULT_HAIKU_MODEL`. Without pinning, Claude Code aliases resolve to the latest version, which can break users when Anthropic releases a new model that isn't yet enabled in your account. See [Model configuration](/en/model-config#pin-models-for-third-party-deployments) for details.
+If you deploy through [Bedrock](/en/amazon-bedrock), [Vertex AI](/en/google-vertex-ai), or [Foundry](/en/microsoft-foundry), pin specific model versions using `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and `ANTHROPIC_DEFAULT_HAIKU_MODEL`. Without pinning, model aliases resolve to the latest version, which may not yet be enabled in your account when Anthropic releases an update. Pinning lets you control when your users move to a new model. See [Model configuration](/en/model-config#pin-models-for-third-party-deployments) for what each provider does when the latest version is unavailable.
 
 ### Configure security policies
 
