@@ -56,6 +56,10 @@ The core pattern is to run each test case twice: once **with the skill** and onc
 Organize eval results in a workspace directory alongside your skill directory. Each pass through the full eval loop gets its own `iteration-N/` directory. Within that, each test case gets an eval directory with `with_skill/` and `without_skill/` subdirectories:
 
 ```
+csv-analyzer/
+├── SKILL.md
+└── evals/
+    └── evals.json
 csv-analyzer-workspace/
 └── iteration-1/
     ├── eval-top-months-chart/
@@ -294,6 +298,3 @@ Stop when you're satisfied with the results, feedback is consistently empty, or 
 <Tip>
   The [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) Skill automates much of this workflow — running evals, grading assertions, aggregating benchmarks, and presenting results for human review.
 </Tip>
-
-
-Built with [Mintlify](https://mintlify.com).
