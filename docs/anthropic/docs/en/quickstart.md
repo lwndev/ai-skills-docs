@@ -15,7 +15,7 @@ Make sure you have:
 * A terminal or command prompt open
   * If you've never used the terminal before, check out the [terminal guide](/en/terminal-guide)
 * A code project to work with
-* A [Claude subscription](https://claude.com/pricing?utm_source=claude_code\&utm_medium=docs\&utm_content=quickstart_prereq) (Pro, Max, Teams, or Enterprise), [Claude Console](https://console.anthropic.com/) account, or access through a [supported cloud provider](/en/third-party-integrations)
+* A [Claude subscription](https://claude.com/pricing?utm_source=claude_code\&utm_medium=docs\&utm_content=quickstart_prereq) (Pro, Max, Team, or Enterprise), [Claude Console](https://console.anthropic.com/) account, or access through a [supported cloud provider](/en/third-party-integrations)
 
 <Note>
   This guide covers the terminal CLI. Claude Code is also available on the [web](https://claude.ai/code), as a [desktop app](/en/desktop), in [VS Code](/en/vs-code) and [JetBrains IDEs](/en/jetbrains), in [Slack](/en/slack), and in CI/CD with [GitHub Actions](/en/github-actions) and [GitLab](/en/gitlab-ci-cd). See [all interfaces](/en/overview#use-claude-code-everywhere).
@@ -29,23 +29,25 @@ To install Claude Code, use one of the following methods:
   <Tab title="Native Install (Recommended)">
     **macOS, Linux, WSL:**
 
-    ```bash  theme={null}
+    ```bash theme={null}
     curl -fsSL https://claude.ai/install.sh | bash
     ```
 
     **Windows PowerShell:**
 
-    ```powershell  theme={null}
+    ```powershell theme={null}
     irm https://claude.ai/install.ps1 | iex
     ```
 
     **Windows CMD:**
 
-    ```batch  theme={null}
+    ```batch theme={null}
     curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
     ```
 
-    **Windows requires [Git for Windows](https://git-scm.com/downloads/win).** Install it first if you don't have it.
+    If you see `The token '&&' is not a valid statement separator`, you're in PowerShell, not CMD. If you see `'irm' is not recognized as an internal or external command`, you're in CMD, not PowerShell. Your prompt shows `PS C:\` when you're in PowerShell and `C:\` without the `PS` when you're in CMD.
+
+    [Git for Windows](https://git-scm.com/downloads/win) is recommended on native Windows so Claude Code can use the Bash tool. If Git for Windows is not installed, Claude Code uses PowerShell as the shell tool instead. WSL setups do not need Git for Windows.
 
     <Info>
       Native installations automatically update in the background to keep you on the latest version.
@@ -53,17 +55,19 @@ To install Claude Code, use one of the following methods:
   </Tab>
 
   <Tab title="Homebrew">
-    ```bash  theme={null}
+    ```bash theme={null}
     brew install --cask claude-code
     ```
 
+    Homebrew offers two casks. `claude-code` tracks the stable release channel, which is typically about a week behind and skips releases with major regressions. `claude-code@latest` tracks the latest channel and receives new versions as soon as they ship.
+
     <Info>
-      Homebrew installations do not auto-update. Run `brew upgrade claude-code` periodically to get the latest features and security fixes.
+      Homebrew installations do not auto-update. Run `brew upgrade claude-code` or `brew upgrade claude-code@latest`, depending on which cask you installed, to get the latest features and security fixes.
     </Info>
   </Tab>
 
   <Tab title="WinGet">
-    ```powershell  theme={null}
+    ```powershell theme={null}
     winget install Anthropic.ClaudeCode
     ```
 
@@ -73,23 +77,25 @@ To install Claude Code, use one of the following methods:
   </Tab>
 </Tabs>
 
+You can also install with [apt, dnf, or apk](/en/setup#install-with-linux-package-managers) on Debian, Fedora, RHEL, and Alpine.
+
 ## Step 2: Log in to your account
 
 Claude Code requires an account to use. When you start an interactive session with the `claude` command, you'll need to log in:
 
-```bash  theme={null}
+```bash theme={null}
 claude
 # You'll be prompted to log in on first use
 ```
 
-```bash  theme={null}
+```bash theme={null}
 /login
 # Follow the prompts to log in with your account
 ```
 
 You can log in using any of these account types:
 
-* [Claude Pro, Max, Teams, or Enterprise](https://claude.com/pricing?utm_source=claude_code\&utm_medium=docs\&utm_content=quickstart_login) (recommended)
+* [Claude Pro, Max, Team, or Enterprise](https://claude.com/pricing?utm_source=claude_code\&utm_medium=docs\&utm_content=quickstart_login) (recommended)
 * [Claude Console](https://console.anthropic.com/) (API access with pre-paid credits). On first login, a "Claude Code" workspace is automatically created in the Console for centralized cost tracking.
 * [Amazon Bedrock, Google Vertex AI, or Microsoft Foundry](/en/third-party-integrations) (enterprise cloud providers)
 
@@ -99,7 +105,7 @@ Once logged in, your credentials are stored and you won't need to log in again. 
 
 Open your terminal in any project directory and start Claude Code:
 
-```bash  theme={null}
+```bash theme={null}
 cd /path/to/your/project
 claude
 ```
@@ -114,35 +120,35 @@ You'll see the Claude Code welcome screen with your session information, recent 
 
 Let's start with understanding your codebase. Try one of these commands:
 
-```text  theme={null}
+```text theme={null}
 what does this project do?
 ```
 
 Claude will analyze your files and provide a summary. You can also ask more specific questions:
 
-```text  theme={null}
+```text theme={null}
 what technologies does this project use?
 ```
 
-```text  theme={null}
+```text theme={null}
 where is the main entry point?
 ```
 
-```text  theme={null}
+```text theme={null}
 explain the folder structure
 ```
 
 You can also ask Claude about its own capabilities:
 
-```text  theme={null}
+```text theme={null}
 what can Claude Code do?
 ```
 
-```text  theme={null}
+```text theme={null}
 how do I create custom skills in Claude Code?
 ```
 
-```text  theme={null}
+```text theme={null}
 can Claude Code work with Docker?
 ```
 
@@ -154,7 +160,7 @@ can Claude Code work with Docker?
 
 Now let's make Claude Code do some actual coding. Try a simple task:
 
-```text  theme={null}
+```text theme={null}
 add a hello world function to the main file
 ```
 
@@ -173,25 +179,25 @@ Claude Code will:
 
 Claude Code makes Git operations conversational:
 
-```text  theme={null}
+```text theme={null}
 what files have I changed?
 ```
 
-```text  theme={null}
+```text theme={null}
 commit my changes with a descriptive message
 ```
 
 You can also prompt for more complex Git operations:
 
-```text  theme={null}
+```text theme={null}
 create a new branch called feature/quickstart
 ```
 
-```text  theme={null}
+```text theme={null}
 show me the last 5 commits
 ```
 
-```text  theme={null}
+```text theme={null}
 help me resolve merge conflicts
 ```
 
@@ -201,13 +207,13 @@ Claude is proficient at debugging and feature implementation.
 
 Describe what you want in natural language:
 
-```text  theme={null}
+```text theme={null}
 add input validation to the user registration form
 ```
 
 Or fix existing issues:
 
-```text  theme={null}
+```text theme={null}
 there's a bug where users can submit empty forms - fix it
 ```
 
@@ -224,25 +230,25 @@ There are a number of ways to work with Claude:
 
 **Refactor code**
 
-```text  theme={null}
+```text theme={null}
 refactor the authentication module to use async/await instead of callbacks
 ```
 
 **Write tests**
 
-```text  theme={null}
+```text theme={null}
 write unit tests for the calculator functions
 ```
 
 **Update documentation**
 
-```text  theme={null}
+```text theme={null}
 update the README with installation instructions
 ```
 
 **Code review**
 
-```text  theme={null}
+```text theme={null}
 review my changes and suggest improvements
 ```
 
@@ -261,10 +267,9 @@ Here are the most important commands for daily use:
 | `claude -p "query"` | Run one-off query, then exit                           | `claude -p "explain this function"` |
 | `claude -c`         | Continue most recent conversation in current directory | `claude -c`                         |
 | `claude -r`         | Resume a previous conversation                         | `claude -r`                         |
-| `claude commit`     | Create a Git commit                                    | `claude commit`                     |
 | `/clear`            | Clear conversation history                             | `/clear`                            |
 | `/help`             | Show available commands                                | `/help`                             |
-| `exit` or Ctrl+C    | Exit Claude Code                                       | `exit`                              |
+| `exit` or Ctrl+D    | Exit Claude Code                                       | `exit`                              |
 
 See the [CLI reference](/en/cli-reference) for a complete list of commands.
 
@@ -282,7 +287,7 @@ For more, see [best practices](/en/best-practices) and [common workflows](/en/co
   <Accordion title="Use step-by-step instructions">
     Break complex tasks into steps:
 
-    ```text  theme={null}
+    ```text theme={null}
     1. create a new database table for user profiles
     2. create an API endpoint to get and update user profiles
     3. build a webpage that allows users to see and edit their information
@@ -292,20 +297,20 @@ For more, see [best practices](/en/best-practices) and [common workflows](/en/co
   <Accordion title="Let Claude explore first">
     Before making changes, let Claude understand your code:
 
-    ```text  theme={null}
+    ```text theme={null}
     analyze the database schema
     ```
 
-    ```text  theme={null}
+    ```text theme={null}
     build a dashboard showing products that are most frequently returned by our UK customers
     ```
   </Accordion>
 
   <Accordion title="Save time with shortcuts">
-    * Press `?` to see all available keyboard shortcuts
+    * Type `/` to see all commands and skills
     * Use Tab for command completion
     * Press ↑ for command history
-    * Type `/` to see all commands and skills
+    * Press `Shift+Tab` to cycle permission modes
   </Accordion>
 </AccordionGroup>
 
