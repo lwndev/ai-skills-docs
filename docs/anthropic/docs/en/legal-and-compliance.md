@@ -6,6 +6,10 @@
 
 > Legal agreements, compliance certifications, and security information for Claude Code.
 
+<Note>
+  Starting June 15, 2026, Agent SDK and `claude -p` usage on subscription plans will draw from a new monthly Agent SDK credit, separate from your interactive usage limits. See [Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan) for details.
+</Note>
+
 ## Legal agreements
 
 ### License
@@ -17,7 +21,7 @@ Your use of Claude Code is subject to:
 
 ### Commercial agreements
 
-Whether you're using the Claude API directly (1P) or accessing it through AWS Bedrock or Google Vertex (3P), your existing commercial agreement will apply to Claude Code usage, unless we've mutually agreed otherwise.
+Whether you're using the Claude API directly (1P) or accessing it through Amazon Bedrock or Google Vertex (3P), your existing commercial agreement will apply to Claude Code usage, unless we've mutually agreed otherwise.
 
 ## Compliance
 
@@ -35,8 +39,8 @@ Claude Code usage is subject to the [Anthropic Usage Policy](https://www.anthrop
 
 Claude Code authenticates with Anthropic's servers using OAuth tokens or API keys. These authentication methods serve different purposes:
 
-* **OAuth authentication** (used with Free, Pro, and Max plans) is intended exclusively for Claude Code and Claude.ai. Using OAuth tokens obtained through Claude Free, Pro, or Max accounts in any other product, tool, or service — including the [Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) — is not permitted and constitutes a violation of the [Consumer Terms of Service](https://www.anthropic.com/legal/consumer-terms).
-* **Developers** building products or services that interact with Claude's capabilities, including those using the [Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview), should use API key authentication through [Claude Console](https://platform.claude.com/) or a supported cloud provider. Anthropic does not permit third-party developers to offer Claude.ai login or to route requests through Free, Pro, or Max plan credentials on behalf of their users.
+* **OAuth authentication** is intended exclusively for purchasers of Claude Free, Pro, Max, Team, and Enterprise subscription plans and is designed to support ordinary use of Claude Code and other native Anthropic applications. More information about how users can authenticate with OAuth tokens can be found in [Logging in to your Claude account](https://support.claude.com/en/articles/13189465-logging-in-to-your-claude-account).
+* **Developers** building products or services that interact with Claude's capabilities, including those using the [Agent SDK](/en/agent-sdk/overview), should use API key authentication through [Claude Console](https://platform.claude.com/) or a supported cloud provider. Anthropic does not permit third-party developers to offer Claude.ai login or to route requests through Free, Pro, or Max plan credentials on behalf of their users.
 
 Anthropic reserves the right to take measures to enforce these restrictions and may do so without prior notice.
 
@@ -50,7 +54,7 @@ You can find more information in the [Anthropic Trust Center](https://trust.anth
 
 ### Security vulnerability reporting
 
-Anthropic manages our security program through HackerOne. [Use this form to report vulnerabilities](https://hackerone.com/anthropic-vdp/reports/new?type=team\&report_type=vulnerability).
+Anthropic manages our security program through HackerOne. [Use this form to report vulnerabilities](https://hackerone.com/4f1f16ba-10d3-4d09-9ecc-c721aad90f24/embedded_submissions/new).
 
 ***
 
