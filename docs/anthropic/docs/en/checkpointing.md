@@ -10,41 +10,50 @@ Claude Code automatically tracks Claude's file edits as you work, allowing you t
 
 ## How checkpoints work
 
-As you work with Claude, checkpointing automatically captures the state of your code before each edit. This safety net lets you pursue ambitious, wide-scale tasks knowing you can always return to a prior code state.
+As you work with Claude, checkpointing automatically captures the state of your code before each prompt you send that starts a turn.
 
 ### Automatic tracking
 
 Claude Code tracks all changes made by its file editing tools:
 
-* Every user prompt creates a new checkpoint
-* Checkpoints persist across sessions, so you can access them in resumed conversations
-* Automatically cleaned up along with sessions after 30 days (configurable)
+* Every prompt you send that starts a turn creates a new checkpoint
+* Claude Code keeps file snapshots for the 100 most recent checkpoints in a session. Discarding an older checkpoint deletes the snapshot files that no remaining checkpoint references, except each file's first snapshot, which the VS Code extension uses as the baseline for its session diffs.
+* Claude Code saves checkpoints with the conversation, so you can still run `/rewind` after you resume a session
+* Claude Code deletes a session's file snapshots in the [retention sweep](/docs/en/claude-directory#cleaned-up-automatically), by default about 30 days after the session last saved one. Rewinding to a checkpoint whose snapshots are gone can fail with [`No files were restored`](/docs/en/errors#no-files-were-restored). To keep snapshots longer, set [`cleanupPeriodDays`](/docs/en/settings-reference#cleanupperioddays).
 
 ### Rewind and summarize
 
-Press `Esc` twice (`Esc` + `Esc`) or use the `/rewind` command to open the rewind menu. A scrollable list shows each of your prompts from the session. Select the point you want to act on, then choose an action:
+Run `/rewind`, or press `Esc` twice when the prompt input is empty, to open the rewind menu.
+
+<Note>
+  If the prompt input contains text, double `Esc` clears it instead of opening the menu. The cleared text is saved to your input history, so press `Up` to recall it after you finish in the rewind menu.
+</Note>
+
+The rewind menu lists each prompt you sent during the session, except [messages that joined a running turn](#messages-sent-mid-turn-not-checkpointed). Select the point you want to act on, then choose an action:
 
 * **Restore code and conversation**: revert both code and conversation to that point
 * **Restore conversation**: rewind to that message while keeping current code
 * **Restore code**: revert file changes while keeping the conversation
 * **Summarize from here**: compress the conversation from this point forward into a summary, freeing context window space
+* **Summarize up to here**: compress the conversation before this point into a summary, keeping later messages intact
 * **Never mind**: return to the message list without making changes
 
-After restoring the conversation or summarizing, the original prompt from the selected message is restored into the input field so you can re-send or edit it.
+The two code restore options appear only when the selected checkpoint has tracked file changes to revert. If no file edits were captured after that point, the menu offers only **Restore conversation**, the summarize options, and **Never mind**.
 
-#### Restore vs. summarize
+After restoring the conversation or choosing Summarize from here, the original prompt from the selected message is restored into the input field so you can re-send or edit it.
 
-The three restore options revert state: they undo code changes, conversation history, or both. "Summarize from here" works differently:
+Choosing Summarize up to here leaves you at the end of the conversation with the input empty. With either summarize option, a **Summarized conversation** marker appears in the conversation where the compressed messages were.
 
-* Messages before the selected message stay intact
-* The selected message and all subsequent messages get replaced with a compact AI-generated summary
-* No files on disk are changed
-* The original messages are preserved in the session transcript, so Claude can reference the details if needed
+#### Rewind past a cleared conversation
 
-This is similar to `/compact`, but targeted: instead of summarizing the entire conversation, you keep early context in full detail and only compress the parts that are using up space. You can type optional instructions to guide what the summary focuses on.
+If you ran `/clear` earlier in the same Claude Code process, the rewind menu shows an additional entry at the top of the list labeled `/resume <session-id> (previous session)`. Select it to resume the conversation that was active before `/clear` ran. The entry is available until you exit Claude Code or resume a different session.
+
+#### Guide a summary
+
+Summarizing doesn't change files on disk, and the original messages stay in the session transcript, so Claude can still reference the details. To guide what the summary focuses on, highlight a **Summarize** option with the arrow keys and type instructions where the row reads **add context (optional)**, then press `Enter`. Selecting the option with its number key summarizes immediately without instructions.
 
 <Note>
-  Summarize keeps you in the same session and compresses context. If you want to branch off and try a different approach while preserving the original session intact, use [fork](/en/how-claude-code-works#resume-or-fork-sessions) instead (`claude --continue --fork-session`).
+  Summarize keeps you in the same session and compresses context, like a targeted `/compact`. To branch off and try a different approach while preserving the original session intact, use [`/branch`](/docs/en/sessions#branch-a-session) or `claude --continue --fork-session` instead.
 </Note>
 
 ## Common use cases
@@ -60,9 +69,9 @@ Checkpoints are particularly useful when:
 
 ### Bash command changes not tracked
 
-Checkpointing does not track files modified by bash commands. For example, if Claude Code runs:
+Checkpointing does not track files modified by Bash commands. For example, if Claude Code runs:
 
-```bash  theme={null}
+```bash theme={null}
 rm file.txt
 mv old.txt new.txt
 cp source.txt dest.txt
@@ -70,20 +79,35 @@ cp source.txt dest.txt
 
 These file modifications cannot be undone through rewind. Only direct file edits made through Claude's file editing tools are tracked.
 
+### Subagent edits not restored
+
+A [subagent](/docs/en/sub-agents) makes edits with Claude's file editing tools, but Claude Code usually doesn't capture those edits in your session's checkpoints. Whether rewinding restores them depends on how the subagent runs:
+
+* **Foreground forked skill**: a [skill with `context: fork`](/docs/en/skills#run-skills-in-a-subagent) that runs in the foreground edits your working tree during your own turn, so rewinding restores its edits as usual. Set `background: false` to run a fork in the foreground; a few situations, [listed on the skills page](/docs/en/skills#run-skills-in-a-subagent), run it there regardless of the setting.
+* **Any other subagent**: rewinding doesn't restore the edits. Use git to revert them. This includes a forked skill that runs in the background, the default, and a background [`/code-review --fix`](/docs/en/code-review) run.
+
 ### External changes not tracked
 
 Checkpointing only tracks files that have been edited within the current session. Manual changes you make to files outside of Claude Code and edits from other concurrent sessions are normally not captured, unless they happen to modify the same files as the current session.
 
+### Messages sent mid-turn not checkpointed
+
+When a message you [queue while Claude works](/docs/en/interactive-mode#queue-messages-while-claude-works) reaches Claude within the running turn, it joins that turn instead of starting a new one. The message appears in the conversation, but Claude Code doesn't create a checkpoint for it, and the rewind menu doesn't list it. A queued message that Claude Code sends as its own turn gets a checkpoint as usual.
+
+To remove such a message, or undo the edits Claude made after it, rewind to the prompt that started the turn. That rewinds the whole turn, including the work Claude did before your message arrived.
+
+### Symlinked and hard-linked paths not restored
+
+Checkpointing doesn't rewind symlinked or hard-linked files. When you pick **Restore code** or **Restore code and conversation** from the `/rewind` menu, Claude Code skips any tracked path that is a symlink or hard link and shows a `Restored the code, but skipped N files` warning. The skipped files keep their current contents. To undo the session's changes to one of them, ask Claude to reverse the edit or edit the file yourself. Config files a dotfile manager symlinks into your project and files pnpm hard-links into place both fall into this category.
+
+To see which paths a restore skips, turn on debug logging with `/debug` before you restore: the debug log at `~/.claude/debug/<session-id>.txt` names each skipped path. For every skip reason and the recovery steps, see [the skipped-files entry in the error reference](/docs/en/errors#restored-the-code-but-skipped-files).
+
 ### Not a replacement for version control
 
-Checkpoints are designed for quick, session-level recovery. For permanent version history and collaboration:
-
-* Continue using version control (ex. Git) for commits, branches, and long-term history
-* Checkpoints complement but don't replace proper version control
-* Think of checkpoints as "local undo" and Git as "permanent history"
+Checkpoints are designed for quick, session-level recovery. For permanent version history and collaboration, continue using version control, such as Git, for commits, branches, and long-term history.
 
 ## See also
 
-* [Interactive mode](/en/interactive-mode) - Keyboard shortcuts and session controls
-* [Built-in commands](/en/commands) - Accessing checkpoints using `/rewind`
-* [CLI reference](/en/cli-reference) - Command-line options
+* [Interactive mode](/docs/en/interactive-mode) - Keyboard shortcuts and session controls
+* [Commands](/docs/en/commands) - Accessing checkpoints using `/rewind`
+* [CLI reference](/docs/en/cli-reference) - Command-line options
