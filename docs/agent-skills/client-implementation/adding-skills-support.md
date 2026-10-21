@@ -21,11 +21,11 @@ The guide notes where these differences matter. You don't need to support every 
 
 Every skills-compatible agent follows the same three-tier loading strategy:
 
-| Tier            | What's loaded               | When                                 | Token cost                  |
-| --------------- | --------------------------- | ------------------------------------ | --------------------------- |
-| 1. Catalog      | Name + description          | Session start                        | \~50-100 tokens per skill   |
-| 2. Instructions | Full `SKILL.md` body        | When the skill is activated          | \<5000 tokens (recommended) |
-| 3. Resources    | Scripts, references, assets | When the instructions reference them | Varies                      |
+| Tier | What's loaded | When | Token cost |
+| - | - | - | - |
+| 1. Catalog | Name + description | Session start | \~50-100 tokens per skill |
+| 2. Instructions | Full `SKILL.md` body | When the skill is activated | \<5000 tokens (recommended) |
+| 3. Resources | Scripts, references, assets | When the instructions reference them | Varies |
 
 The model sees the catalog from the start, so it knows what skills are available. When it decides a skill is relevant, it loads the full instructions. If those instructions reference supporting files, the model loads them individually as needed.
 
@@ -46,18 +46,18 @@ Other scopes are possible too — for example, organization-wide skills deployed
 
 Within each scope, consider scanning both a **client-specific directory** and the **`.agents/skills/` convention**:
 
-| Scope   | Path                               | Purpose                       |
-| ------- | ---------------------------------- | ----------------------------- |
+| Scope | Path | Purpose |
+| - | - | - |
 | Project | `<project>/.<your-client>/skills/` | Your client's native location |
-| Project | `<project>/.agents/skills/`        | Cross-client interoperability |
-| User    | `~/.<your-client>/skills/`         | Your client's native location |
-| User    | `~/.agents/skills/`                | Cross-client interoperability |
+| Project | `<project>/.agents/skills/` | Cross-client interoperability |
+| User | `~/.<your-client>/skills/` | Your client's native location |
+| User | `~/.agents/skills/` | Cross-client interoperability |
 
 The `.agents/skills/` paths have emerged as a widely-adopted convention for cross-client skill sharing. While the Agent Skills specification does not mandate where skill directories live (it only defines what goes inside them), scanning `.agents/skills/` means skills installed by other compliant clients are automatically visible to yours, and vice versa.
 
-<Note>
-  Some implementations also scan `.claude/skills/` (both project-level and user-level) for pragmatic compatibility, since many existing skills are installed there. Other additional locations include ancestor directories up to the git root (useful for monorepos), [XDG](https://specifications.freedesktop.org/basedir-spec/latest/) config directories, and user-configured paths.
-</Note>
+> [!NOTE]
+>
+> Some implementations also scan `.claude/skills/` (both project-level and user-level) for pragmatic compatibility, since many existing skills are installed there. Other additional locations include ancestor directories up to the git root (useful for monorepos), [XDG](https://specifications.freedesktop.org/basedir-spec/latest/) config directories, and user-configured paths.
 
 ### What to scan for
 
@@ -120,7 +120,7 @@ See the [specification](/specification) for the full set of frontmatter fields a
 
 Skill files authored for other clients may contain technically invalid YAML that their parsers happen to accept. The most common issue is unquoted values containing colons:
 
-```yaml  theme={null}
+```yaml theme={null}
 # Technically invalid YAML — the colon breaks parsing
 description: Use this skill when: the user asks about PDFs
 ```
@@ -138,19 +138,19 @@ Warn on issues but still load the skill when possible:
 
 Record diagnostics so they can be surfaced to the user (in a debug command, log file, or UI), but don't block skill loading on cosmetic issues.
 
-<Note>
-  The [specification](/specification) defines strict constraints on the `name` field (matching the parent directory, character set, max length). The lenient approach above deliberately relaxes these to improve compatibility with skills authored for other clients.
-</Note>
+> [!NOTE]
+>
+> The [specification](/specification) defines strict constraints on the `name` field (matching the parent directory, character set, max length). The lenient approach above deliberately relaxes these to improve compatibility with skills authored for other clients.
 
 ### What to store
 
 At minimum, each skill record needs three fields:
 
-| Field         | Description                          |
-| ------------- | ------------------------------------ |
-| `name`        | From frontmatter                     |
-| `description` | From frontmatter                     |
-| `location`    | Absolute path to the `SKILL.md` file |
+| Field | Description |
+| - | - |
+| `name` | From frontmatter |
+| `description` | From frontmatter |
+| `location` | Absolute path to the `SKILL.md` file |
 
 Store these in an in-memory map keyed by `name` for fast lookup during activation.
 
@@ -166,7 +166,7 @@ Tell the model what skills exist without loading their full content. This is [ti
 
 For each discovered skill, include `name`, `description`, and optionally `location` (the path to the `SKILL.md` file) in whatever structured format suits your stack — XML, JSON, or a bulleted list all work:
 
-```xml  theme={null}
+```xml theme={null}
 <available_skills>
   <skill>
     <name>pdf-processing</name>
@@ -253,9 +253,9 @@ Two implementation patterns:
 * Enforce permissions or prompt for user consent
 * Track activation for analytics
 
-<Tip>
-  If you use a dedicated activation tool, constrain the `name` parameter to the set of valid skill names (e.g., as an enum in the tool schema). This prevents the model from hallucinating nonexistent skill names. If no skills are available, don't register the tool at all.
-</Tip>
+> [!TIP]
+>
+> If you use a dedicated activation tool, constrain the `name` parameter to the set of valid skill names (e.g., as an enum in the tool schema). This prevents the model from hallucinating nonexistent skill names. If no skills are available, don't register the tool at all.
 
 ### User-explicit activation
 
@@ -277,7 +277,7 @@ Both approaches work in practice.
 
 If you use a dedicated activation tool, consider wrapping skill content in identifying tags. For example:
 
-```xml  theme={null}
+```xml theme={null}
 <skill_content name="pdf-processing">
 # PDF Processing
 
@@ -335,6 +335,3 @@ Consider tracking which skills have been activated in the current session. If th
 This is an advanced pattern only supported by some clients. Instead of injecting skill instructions into the main conversation, the skill is run in a **separate subagent session**. The subagent receives the skill instructions, performs the task, and returns a summary of its work to the main conversation.
 
 This pattern is useful when a skill's workflow is complex enough to benefit from a dedicated, focused session.
-
-
-Built with [Mintlify](https://mintlify.com).
