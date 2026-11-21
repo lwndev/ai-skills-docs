@@ -1,0 +1,350 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://code.claude.com/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Run tool calls from code with Code Mode
+
+> Try Code Mode, an experimental feature in which Claude writes JavaScript that makes several tool calls in one step.
+
+Code Mode changes how Claude uses its [tools](https://code.claude.com/docs/en/tools-reference.md). Without Code Mode, Claude asks for tool calls such as Bash, Read, or Edit directly and reads each result before it decides what to do next. With Code Mode, Claude writes a piece of JavaScript that makes the tool calls, and Claude Code runs that code in your session.
+
+> [!NOTE]
+>
+> Code Mode is experimental and off by default. It may change or be removed in any release. To share feedback, run `/feedback`.
+
+## How Code Mode works
+
+In a Code Mode session, you still describe your task in a prompt, and Claude writes JavaScript to carry it out. One piece of code can run commands in parallel, use one result in the next call, and return the part of the output that Claude needs to read.
+
+For example, if you ask Claude to raise a retry limit, Claude might write this code to find the file, edit it, and run the tests. The last line returns the file's path and the test output to Claude:
+
+```javascript theme={null}
+const files = await $`rg -l "function retryPolicy" src`.text();
+const target = files.trim().split("\n")[0];
+await edit(target, "maxAttempts: 3", "maxAttempts: 5");
+({ edited: target, tests: $`npm test -- retryPolicy`.nothrow() });
+```
+
+In the conversation, you see the tool calls, such as the edit's diff, and not the code. To read the code, press `Ctrl+O` to open the [transcript viewer](https://code.claude.com/docs/en/interactive-mode.md#transcript-viewer). Each piece of code appears there as a collapsed **Code** row, with a hint for how to expand it.
+
+### When to use Code Mode
+
+Try Code Mode on tasks that take many related tool calls, such as:
+
+* A change that repeats across many files
+* A search whose results need filtering before Claude reads them
+* Several independent commands that can run at the same time
+
+### Code Mode limitations
+
+Before you turn on Code Mode, check that you can accept these limits:
+
+* **Resuming**: you can resume a Code Mode session only in the terminal, with Code Mode on
+* **Auto mode**: auto mode's classifier [reviews the code, not each tool call](#permission-checks)
+* **Long-running code**: unless [code can run in the background](#long-running-code), you wait for it to finish, and it stops after ten minutes
+* **Hooks**: you can see [tool calls refused](#tool-call-refused-by-a-hook) when a `PreToolUse` hook doesn't finish, for example after a timeout
+* **Unavailable features**: you can't use [Remote Control](https://code.claude.com/docs/en/remote-control.md), [Claude in Chrome](https://code.claude.com/docs/en/chrome.md), or [computer use](https://code.claude.com/docs/en/computer-use.md)
+* **Moving the session**: you can't move the session to the Desktop app or turn it into a [background session](https://code.claude.com/docs/en/agent-view.md), and `/fork` can't start a background copy
+
+## Requirements
+
+* **Version**: Claude Code v2.1.323 or later, on either [release channel](https://code.claude.com/docs/en/setup.md#configure-release-channel). An older version starts without Code Mode, with or without the reason `it isn't open to your account yet`
+* **Account**: a Claude subscription or Console account. You can't use Code Mode through a gateway, Amazon Bedrock, Claude Platform on AWS, Google Cloud's Agent Platform, Microsoft Foundry, or [Claude Models on Google Cloud (Anthropic managed)](https://code.claude.com/docs/en/claude-models-on-google-cloud-anthropic-managed.md)
+* **Organization**: your organization doesn't use the [HIPAA configuration](https://code.claude.com/docs/en/hipaa-setup.md) or [zero data retention](https://code.claude.com/docs/en/zero-data-retention.md)
+* **Model**: Claude Opus 5.5, Sonnet 5.5, Haiku 5.5, or Fable 5.2
+* **Surface**: an interactive `claude` session in a terminal. Code Mode doesn't work with the VS Code panel, the Desktop app, or cloud sessions
+* **Agent teams**: to use Code Mode with [agent teams](https://code.claude.com/docs/en/agent-teams.md) on, you need v2.1.326 or later. Teammates run in Code Mode in the default [in-process display mode](https://code.claude.com/docs/en/agent-teams.md#choose-a-display-mode), and start without it in split panes
+* **Installation**: the [native build](https://code.claude.com/docs/en/setup.md) of Claude Code
+* **Windows**: [Git for Windows](https://git-scm.com/downloads/win) is installed
+
+You also can't start Code Mode with some settings on, such as an API key helper, OpenTelemetry export, or `DISABLE_TELEMETRY`. For the fix for each, see [Code Mode doesn't start](#code-mode-doesnt-start).
+
+## Try Code Mode
+
+Turn on Code Mode, give Claude a task, and look at the code that Claude wrote.
+
+**1. Check your version**
+
+Run `claude --version`. If the version is older than v2.1.323, run `claude update`. If you're on the `stable` channel and the update doesn't reach v2.1.323, wait for `stable` to catch up or [switch to `latest`](https://code.claude.com/docs/en/setup#configure-release-channel).
+
+**2. Start Claude Code with Code Mode on**
+
+Set the [`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE`](https://code.claude.com/docs/en/env-vars#variables) environment variable to `1`. To try Code Mode, set it in your shell. To turn on Code Mode for every new session, set it in your user settings.
+
+> [tab] macOS, Linux, WSL
+>
+> ```bash theme={null}
+> CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1 claude
+> ```
+
+> [tab] Windows PowerShell
+>
+> ```powershell theme={null}
+> $env:CLAUDE_CODE_EXPERIMENTAL_CODE_MODE = "1"
+> claude
+> ```
+
+> [tab] settings.json
+>
+> Save this `env` block in `~/.claude/settings.json` and start `claude`:
+>
+> ```json theme={null}
+> {
+>   "env": {
+>     "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"
+>   }
+> }
+> ```
+>
+> Claude Code [ignores this variable in a project's settings files](https://code.claude.com/docs/en/settings-reference.md#variables-claude-code-ignores-in-env), so a repository you clone can't turn on Code Mode for you.
+
+**3. Confirm that you want Code Mode**
+
+Claude Code asks you to confirm before your first Code Mode session. Select **Yes, turn on Code Mode**. Claude Code restarts and shows this line near the top of the session:
+
+```text theme={null}
+Code Mode (experimental) is on · this session can be resumed only with Code Mode on
+```
+
+If you see a different line or none, see [Code Mode doesn't start](#code-mode-doesnt-start).
+
+**4. Give Claude a task with many tool calls**
+
+In a project you know, send a prompt such as this one:
+
+```text theme={null}
+Read every Markdown file in this project and list the links that point to local files that don't exist.
+```
+
+**5. Read the code Claude wrote**
+
+Press `Ctrl+O` and expand a **Code** row to see the JavaScript behind the tool calls. Press `Ctrl+O` again to return to the conversation.
+
+> [!WARNING]
+>
+> To resume a Code Mode session later, keep `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE` set to `1` when you run `claude --continue` or `claude --resume`. With Code Mode off, Claude Code refuses to resume the session. Sessions that you started without Code Mode resume without Code Mode, even with the variable set.
+
+### Turn off Code Mode
+
+Remove `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE` from your shell and from `~/.claude/settings.json`, then start a new session. You can also keep the variable and change its value to `0` in either place. With a `0` in one place, Code Mode stays off even if you set `1` in the other.
+
+### Block Code Mode for your organization
+
+Add `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE` with the value `0` to your [managed settings](https://code.claude.com/docs/en/managed-settings.md) so that nobody in your organization can use Code Mode:
+
+```json theme={null}
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "0"
+  }
+}
+```
+
+Users who are in a Code Mode session stay in it until they exit or restart Claude Code. After that, your users start without Code Mode and can't resume their Code Mode sessions while the `0` is in place. You can't turn on Code Mode for your users from managed settings.
+
+## Permissions and long-running code
+
+Your permission mode decides how the code that Claude writes is checked and whether you can talk to Claude while the code runs.
+
+### Permission checks
+
+In auto and `bypassPermissions` modes, code can run from start to finish without a permission prompt. Some calls still prompt you, such as the [actions no mode auto-approves](https://code.claude.com/docs/en/permission-modes.md#actions-no-mode-auto-approves).
+
+Each tool call in the code goes through your `deny` and `ask` [permission rules](https://code.claude.com/docs/en/permissions.md) and [`PreToolUse` hooks](https://code.claude.com/docs/en/hooks#pretooluse) under the tool's usual name, such as `Bash` or an [MCP tool's name](https://code.claude.com/docs/en/permissions.md#mcp). Beyond rules and hooks, a classifier reviews the code in auto mode, and you answer prompts in the modes that ask:
+
+* **[Auto mode](https://code.claude.com/docs/en/permission-modes.md#eliminate-prompts-with-auto-mode)**: the classifier reviews each piece of code before it runs, not each tool call. It doesn't see values computed at run time, such as a path taken from search output, so keep rules or hooks for calls you must control. You can still be [prompted for some calls](#permission-prompt-with-a-countdown), such as calls in code that you approved yourself after repeated classifier blocks
+* **Other [permission modes](https://code.claude.com/docs/en/permission-modes.md)**: you're prompted for each tool call that would prompt you in that mode
+
+If you have a `PreToolUse` hook that allows or blocks shell commands, make it check each part of a command, as [Bash rules do](https://code.claude.com/docs/en/permissions.md#compound-commands). In Code Mode, a `git push` in a folder named `app` can reach your hook as `cd 'app' && git push`.
+
+To check the code itself, write a `PreToolUse` hook that matches `REPL`, the tool that runs the code, and read the JavaScript from `tool_input.code`. To check what the code returns, see [Check code output with a hook](#check-code-output-with-a-hook).
+
+> [!WARNING]
+>
+> Bash rules match command text, so Claude can run a denied command [in a form the rule doesn't match](https://code.claude.com/docs/en/permissions.md#bash-rule-limits), with or without Code Mode. For limits that don't depend on command text, see [sandboxing](https://code.claude.com/docs/en/sandboxing.md).
+
+#### Require approval for a command
+
+To see a prompt for a specific command in auto or `bypassPermissions` mode, add an `ask` rule for it. You're prompted for the [forms of the command that the rule matches](https://code.claude.com/docs/en/permissions.md#bash-rule-limits). To be prompted for commands that start with `git push`, save this rule in `~/.claude/settings.json`:
+
+```json theme={null}
+{
+  "permissions": {
+    "ask": ["Bash(git push *)"]
+  }
+}
+```
+
+To test the rule, start a new session in auto mode in a repository with no remote, and ask Claude to run `git push origin main`. You see a prompt for that command.
+
+#### Approve each piece of code first
+
+To read and approve code before it starts, add an `ask` rule for `REPL`, the tool that runs the code. Save this rule in `~/.claude/settings.json`:
+
+```json theme={null}
+{
+  "permissions": {
+    "ask": ["REPL"]
+  }
+}
+```
+
+To test the rule, start a new session and give Claude a task. You see a prompt that doesn't include the code. To read the code before you answer, press `Ctrl+O`, expand the **Code** row, and press `Ctrl+O` again to return. From the main conversation, you don't see a [subagent](https://code.claude.com/docs/en/sub-agents.md)'s code in that view.
+
+If you approve in auto mode, the code starts even when the classifier would have blocked it, and its project edits and read-only commands run without a prompt. If Claude reports that the code can't start a subagent, remove the rule.
+
+#### Answer a permission prompt while code runs
+
+To stop the code at a prompt for one of its tool calls, answer **No** without a comment. These results apply to prompts that aren't labeled as coming from a subagent:
+
+* **No, or `Esc`**: the code stops, and changes from calls that already finished stay in place
+* **No, with a [comment](https://code.claude.com/docs/en/permissions.md#add-a-comment-when-you-answer-a-permission-prompt)**: the call is refused, and the code can continue with its other calls
+
+### Limit shell commands with the sandbox
+
+Your [sandbox](https://code.claude.com/docs/en/sandboxing.md) settings apply to the shell commands that code runs. The JavaScript itself and its file, web, and MCP tool calls run [outside the sandbox](https://code.claude.com/docs/en/sandboxing.md#what-runs-outside-the-sandbox). To isolate the JavaScript and those calls too, run Claude Code in a [container or virtual machine](https://code.claude.com/docs/en/sandbox-environments.md).
+
+To keep commands in the sandbox when code requests to run them unsandboxed, turn on [strict sandbox mode](https://code.claude.com/docs/en/sandboxing.md#turn-off-the-retry-with-strict-sandbox-mode). In auto mode, the classifier reviews the code that makes the request, and the command has no separate review.
+
+### Long-running code
+
+While code runs a long build or test, Claude either waits for it or lets it continue in the background:
+
+* **Waiting**: Claude answers after the code finishes, and the code stops after ten minutes. In Manual and `acceptEdits` [modes](https://code.claude.com/docs/en/permission-modes.md#available-modes), time you spend at a tool's permission prompt doesn't count toward the ten minutes. Before v2.1.328, that time counted.
+* **Background**: you can keep talking to Claude, and the code can run for up to two hours
+
+For background code, start your session in auto or `bypassPermissions` mode. If Claude still waits, check your current mode and how you started the session:
+
+* **You switched to another mode**: press `Shift+Tab` until you're back in the mode you started in
+* **You started in another mode**: if [auto mode is available](https://code.claude.com/docs/en/permission-modes.md#eliminate-prompts-with-auto-mode) to you, exit, then run `claude --continue --permission-mode auto` with Code Mode on
+* **You're on a version before v2.1.328 and picked the session from the `claude --resume` list**: exit, [update Claude Code](https://code.claude.com/docs/en/setup.md#update-claude-code), then run the same `claude --resume` command with Code Mode on. To stay on your version, replace `--resume` with `--continue`
+* **You passed tool names to `--tools`**: start again in auto mode without that flag
+
+### Stop code in progress
+
+To stop code while Claude is responding or waiting for the code, press `Esc`. To stop background code after Claude finishes responding, run [`/tasks`](https://code.claude.com/docs/en/commands) in the session, select the running task, and press `x`.
+
+After you stop the code, check `/tasks` for [subagents](https://code.claude.com/docs/en/sub-agents.md), [shell commands](https://code.claude.com/docs/en/interactive-mode.md#background-bash-commands), and [MCP calls](https://code.claude.com/docs/en/mcp.md#automatic-backgrounding-of-long-tool-calls) that the code started and that are still running. To stop one, select it and press `x`.
+
+### Check code output with a hook
+
+To check or redact what the code returns before Claude reads it, write a [`PostToolUse` hook](https://code.claude.com/docs/en/hooks#posttooluse) that matches `REPL`, the tool that runs the code. The same hook runs when [background code](#long-running-code) finishes and when code throws an error.
+
+#### Read code output in the hook
+
+In your `PostToolUse` hook, read the output from `tool_response`, which has fields such as these:
+
+```json theme={null}
+{
+  "code": "(await $`cat notes.txt`.text())",
+  "result": "deploy token: abc123",
+  "stdout": "",
+  "stderr": "",
+  "toolsUsed": ["Bash"]
+}
+```
+
+#### Redact code output
+
+To hide part of the output, return a changed copy of `tool_response` as [`updatedToolOutput`](https://code.claude.com/docs/en/hooks#posttooluse-decision-control), and build the copy this way:
+
+* **Change the text**: redact `result`, `stdout`, `stderr`, and `error`. Handle a `result` that's missing or `null`, and expect `error` only when the code failed or was stopped
+* **Keep the shape**: return `code`, `stdout`, and `stderr` as strings, and return `error` as a string or leave it out. If you break this shape, Claude gets the original output
+* **Remove images and PDFs**: if the copy has `images` or `documents` to hide, set that field to `[]`
+
+To hide the deploy token in the `notes.txt` result, print this JSON:
+
+```json theme={null}
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "updatedToolOutput": {
+      "code": "(await $`cat notes.txt`.text())",
+      "result": "deploy token: REDACTED",
+      "stdout": "",
+      "stderr": "",
+      "toolsUsed": ["Bash"]
+    }
+  }
+}
+```
+
+To test the hook, create a file that contains a value your hook redacts. Then start a Code Mode session, and ask Claude to read and quote the file. Type the path without `@`, and check that Claude's reply shows your replacement text.
+
+> [!WARNING]
+>
+> Don't rely on this hook to hide a value in a refused tool call's input, such as a Bash command. The `refusedCalls` field can repeat that input, and Claude reads it unchanged.
+
+#### Redact when your hook blocks or hits an error
+
+Return a changed copy of `tool_response` as `updatedToolOutput` even when your hook blocks or hits an error:
+
+* **Your hook blocks**: print the [redacted copy](#redact-code-output) in the same JSON as [`"decision": "block"`](https://code.claude.com/docs/en/hooks#posttooluse-decision-control). Without the copy, Claude still reads the original output
+* **Your hook hits an error**: catch the error, and print a copy with placeholder text in the fields that you redact. If the hook crashes, times out, or prints invalid JSON, Claude gets the original output
+
+#### Move a check from a `UserPromptSubmit` hook
+
+If you check code output in a [`UserPromptSubmit` hook](https://code.claude.com/docs/en/hooks#userpromptsubmit), move that check to your `PostToolUse` hook. On v2.1.328 or later, `UserPromptSubmit` hooks don't receive code output, even when an administrator sets them in [managed settings](https://code.claude.com/docs/en/managed-settings.md).
+
+## Troubleshooting
+
+### Code Mode doesn't start
+
+`Code Mode (experimental) isn't available` near the top of the session means that Claude Code started without Code Mode. The reason follows on the same line, and `/status` shows it too. Find the reason in this table, make the change, and start a new session. For a reason that isn't listed, check the [requirements](#requirements).
+
+| Reason includes | What to do |
+| :- | :- |
+| `it isn't open to your account in this version` or `it isn't open to your account yet` | If your version is older than v2.1.323, [update](#try-code-mode). Otherwise, check your network connection and start again. If the reason stays, try again another day |
+| `it only works directly with the Anthropic API` or `it only works with the Anthropic API` | Remove the settings that route requests through a cloud provider, a gateway, or a custom `ANTHROPIC_BASE_URL` |
+| `it doesn't work with an API key helper` | Remove `apiKeyHelper`, `ANTHROPIC_AUTH_TOKEN`, and any `Authorization` or `X-Api-Key` header in `ANTHROPIC_CUSTOM_HEADERS`. Then sign in or set `ANTHROPIC_API_KEY` |
+| `it only works with Opus 5.5, Sonnet 5.5 and later models` | Start with a [supported model](#requirements), for example with `--model opus`. Haiku 5.5 and Fable 5.2 also work |
+| `it doesn't work in background jobs` | Start in the foreground, without `--remote-control`. If the reason shows in a teammate's split pane, use the [in-process display mode](https://code.claude.com/docs/en/agent-teams.md#choose-a-display-mode) to run teammates in Code Mode |
+| `it needs settings that Claude Code downloads from Anthropic` | Unset the variable that [turns off feature-flag fetching](https://code.claude.com/docs/en/env-vars.md#features-that-need-feature-flag-fetching), such as `DISABLE_TELEMETRY` |
+| `OpenTelemetry is on` | Unset `CLAUDE_CODE_ENABLE_TELEMETRY` and `ENABLE_BETA_TRACING_DETAILED` if you can work without [OpenTelemetry export](https://code.claude.com/docs/en/monitoring-usage.md) |
+| `it doesn't yet work with the plugin` | In a session, run `/plugin` and disable each plugin that the reason names. If your organization turned one on, ask your administrator to turn it off |
+| `it doesn't yet work with an installed mod` | Turn off the [mod](https://code.claude.com/docs/en/plugins/mods/overview.md) that checks tool calls |
+| `it can't be used together with agent teams yet` | To keep agent teams on, [update Claude Code](https://code.claude.com/docs/en/setup.md#update-claude-code) to v2.1.326 or later. To stay on your version, unset `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` |
+| `this launch's tool options` | Start without `--restricted`, add `REPL` to `--tools`, and remove `REPL` from `--disallowedTools` and your `deny` rules |
+| `couldn't save your answer` | Make `~/.claude.json` writable |
+| `your organization's settings don't allow it` | Ask your administrator about the [managed setting](#block-code-mode-for-your-organization) |
+
+If you see no line about Code Mode, run `claude --version`. If your version is older than v2.1.323, update. Then check that `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE` is `1` in your shell or user settings, and remove any `0` from those and from any `--settings` file.
+
+### Permission prompt with a countdown
+
+In auto mode, if you approve code yourself after [repeated classifier blocks](https://code.claude.com/docs/en/permission-modes.md#when-auto-mode-falls-back), you can be asked about tool calls in that code and in earlier code that's still running. With no IDE connected, the prompt can show a countdown:
+
+```text theme={null}
+Claude Code will automatically block this request in 1:59, to avoid holding up an unattended session
+```
+
+Answer before the countdown ends. Otherwise that call is refused, and later calls that would show a countdown are refused without a prompt. To see the prompts again, send Claude a message.
+
+Before v2.1.327, you could also be asked about the remaining calls in running code after Claude started new code, even if the classifier allowed the new code. To see fewer of these prompts, [update Claude Code](https://code.claude.com/docs/en/setup.md#update-claude-code) to v2.1.327 or later.
+
+### Tool call refused by a hook
+
+If Claude reports a refused tool call, ask it for the error text. These errors mean that your [`PreToolUse` hook](https://code.claude.com/docs/en/hooks#pretooluse) didn't give a decision:
+
+* **`the hook did not finish`**: your hook timed out, or your agent hook ended without a decision. After a timeout, raise the hook's [`timeout`](https://code.claude.com/docs/en/hooks#common-fields). For an agent hook that gives no decision, move the check to a `command` hook. You can see this error on calls from code, and on other tool calls after Claude runs code in the session
+* **`the hook failed`**: on a call from code, your hook couldn't start, was killed, exited with 126, 127, or a code above 128, or returned an HTTP error or invalid output. Fix the hook. You can see this error before v2.1.329. On later versions it's rare: one cause is [feature-flag fetching](https://code.claude.com/docs/en/env-vars.md#features-that-need-feature-flag-fetching) turning off during a session, after Claude has run code
+
+On v2.1.329 or later, expect a call from code to run by default after a hook failure other than `the hook did not finish`. To choose whether the call runs, use a `command` or `http` hook and set [`onFailure`](https://code.claude.com/docs/en/hooks#block-the-action-when-a-hook-fails) on it:
+
+* **To stop the call after a timeout or failure**: set `"onFailure": "block"`. Do this for a hook that guards calls
+* **To let the call run after a timeout or failure**: set `"onFailure": "continue"`
+
+### Code output withheld by a hook
+
+If you expected output from code and see `UserPromptSubmit operation blocked by hook` in Claude's reply, your [`UserPromptSubmit`](https://code.claude.com/docs/en/hooks#userpromptsubmit) hook received the output as a prompt and blocked it. If Claude reports only the hook's reason, ask it to quote the message it received.
+
+On v2.1.328 or later, `UserPromptSubmit` hooks don't receive code output. To let the output through on an earlier version, update Claude Code or change the hook:
+
+* **Update**: if you rely on the hook to check code output, first [move the check to a `PostToolUse` hook](#check-code-output-with-a-hook). Then [update Claude Code](https://code.claude.com/docs/en/setup.md#update-claude-code) to v2.1.328 or later
+* **Stay on your version**: change the hook so that it doesn't block when `source` in its input is `poll_event`
+
+## Related resources
+
+* [Permission modes](https://code.claude.com/docs/en/permission-modes.md): compare auto mode with the modes that prompt you
+* [Hooks reference](https://code.claude.com/docs/en/hooks.md): write `PreToolUse` and `PostToolUse` hooks
+* [Managed settings](https://code.claude.com/docs/en/managed-settings.md): apply one configuration across an organization
